@@ -618,8 +618,8 @@ def _purge_task_modules() -> list:
         funcs = getattr(cv, "_FUNCS", None)
         if isinstance(funcs, set):
             funcs.clear()
-    # 热更新后同时刷新词库与登录状态机模块，免重启立刻生效
-    for mod_key in ("oas_mobile.i18n_zh", "oas_mobile.login"):
+    # 热更新后同时刷新词库、登录状态机与资产采集模块，免重启立刻生效
+    for mod_key in ("oas_mobile.i18n_zh", "oas_mobile.login", "oas_mobile.asset_monitor"):
         sys.modules.pop(mod_key, None)
     srv = sys.modules.get("oas_mobile.server")
     i18n_cache = getattr(srv, "_I18N_CACHE", None)

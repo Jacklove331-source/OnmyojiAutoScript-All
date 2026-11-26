@@ -677,7 +677,12 @@ def refresh_assets(
     try:
         from . import bridge
 
-        if not bridge.available():
+        bridge_ready = (
+            (callable(getattr(bridge, "shizuku_available", None)) and bridge.shizuku_available())
+            or (callable(getattr(bridge, "vdstream_running", None)) and bridge.vdstream_running())
+            or (callable(getattr(bridge, "available", None)) and bridge.available())
+        )
+        if not bridge_ready:
             snap = merge_snapshot(workspace, config, {}, error="Shizuku 桥接未就绪")
             return {"ok": False, "error": "Shizuku 桥接未就绪", "snapshot": snap}
 
@@ -698,7 +703,17 @@ def refresh_assets(
         for _ in range(4):
             if looks_courtyard(rows):
                 break
-            _tap_1280(bridge, disp, 35, 35, fsize)
+            joined_txt = "".join(str(r.get("text") or "") for r in rows)
+            if "退出游戏" in joined_txt or "确定要退出" in joined_txt:
+                # 防止点返回弹出了退出游戏框，优先点“取消”
+                cancel_xy = (835, 416)
+                for r in rows:
+                    if "取消" in str(r.get("text") or ""):
+                        cancel_xy = (int(r["x"] + r["w"] / 2), int(r["y"] + r["h"] / 2))
+                        break
+                _tap_1280(bridge, disp, cancel_xy[0], cancel_xy[1], fsize)
+            else:
+                _tap_1280(bridge, disp, 35, 35, fsize)
             time.sleep(1.0)
             rgb, fsize = _capture_rgb(bridge, disp)
             if rgb is None:

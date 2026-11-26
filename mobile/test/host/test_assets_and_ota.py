@@ -84,6 +84,25 @@ class TestAssetMonitor(unittest.TestCase):
             self.assertEqual(snap2["items"]["ap"]["value"], 20475)
             self.assertEqual(snap2["items"]["ap"]["precision"], "exact")
 
+    def test_refresh_assets_accepts_shizuku_without_accessibility(self):
+        # Shizuku 就绪但未开启无障碍服务时，不能误报“Shizuku 桥接未就绪”
+        from types import SimpleNamespace
+        from unittest.mock import patch
+
+        fake_bridge = SimpleNamespace(
+            available=lambda: False,
+            shizuku_available=lambda: True,
+            vdstream_running=lambda: True,
+            vdstream_display=lambda: 7,
+            display_screenshot=lambda d: b"",
+        )
+        with tempfile.TemporaryDirectory() as ws:
+            with patch.dict(sys.modules, {"oas_mobile.bridge": fake_bridge}):
+                res = asset_monitor.refresh_assets(ws, config="oas1", force=True)
+            self.assertFalse(res["ok"])
+            self.assertNotEqual(res["error"], "Shizuku 桥接未就绪")
+            self.assertEqual(res["error"], "无法获取虚拟屏截图")
+
 
 class TestOtaUpdater(unittest.TestCase):
     def _make_zip(self, entries: dict[str, bytes]) -> tuple[bytes, str]:
