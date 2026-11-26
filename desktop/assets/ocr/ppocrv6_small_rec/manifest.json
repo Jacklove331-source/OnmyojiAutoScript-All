@@ -1,8 +1,0 @@
-{
-  "name": "PP-OCRv6_small_rec",
-  "source": "https://huggingface.co/PaddlePaddle/PP-OCRv6_small_rec_onnx",
-  "sha256": {
-    "inference.onnx": "5435fd747c9e0efe15a96d0b378d5bd157e9492ed8fd80edf08f30d02fa24634",
-    "characters.json": "46f800890c516f8a4e9e9d690f1ef9dc8d36782333463363d80307d572acb8be"
-  }
-}

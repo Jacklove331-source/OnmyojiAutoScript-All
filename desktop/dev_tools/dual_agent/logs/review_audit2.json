@@ -1,9 +1,0 @@
-[11:04:31] agent_a[anthropic/claude-opus-5-5/review_hard] ok=True 299.2s ¥6.1727 in=6+cr94167+cw41647 out=31216
-[11:04:31] 任务 T-audit-metrics-fix 通过 Claude 审核
-{
- "task_key": "T-audit-metrics-fix",
- "phase": "accepted",
- "verdict": "PASS",
- "reviewer": "claude-opus-5-5",
- "review_note": "返工点已落实：chess_decision_audit.py:197-202 的 close_pending(ok=False) 现在把 timeline[rnd]['buy_unconfirmed'] 回填到发起购买的回合，与 :189-194 的 buy_ok 分支对称。你是把 `rnd = pending_buy.get('round')` 重复写了一行而不是上提，效果等价，可以接受。测试文件最后一次提交是 95e934b9（10:50:02，早于 REWORK），b3436a0b 只改了审计脚本；20 项断言（含 :71）都原样保留，没有靠改断言过关。我在真实日志上只读复跑了 `chess_decision_audit.py --json chess_validate4_2234.log`：第1局 1~8 回合 buyOK=0,0,1,1,0,3,1,1，逐回合 buy_ok 之和 37 = events.buy_ok，buy_unconfirmed 之和 1 = events；第2局 buyOK=1,0,2,0,0,0,0,1，之和 29 = events；soul_equipped 两局分别是 10 和 7（修复前恒为 0）。顺手加的 buyOK 显示列只动了 audit() 的文本输出，用到的键 :254 已初始化，metrics.py 走 --json，不受影响，这次接受；以后展示类改动请先写进任务范围。遗留问题（不在本任务范围）：:220 `[ChessMatch] start` 处 pending_buy=None 仍会丢掉上一局最后一笔购买。validate4 第1局 attempt=39，而 ok 37 + unconf 1 = 38，差 1 笔，和这个遗留问题吻合（也可能是 cancelled），待另开任务确认。"
-}

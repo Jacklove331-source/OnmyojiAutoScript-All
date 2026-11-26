@@ -1,3 +1,0 @@
-[10:26:28] agent_a call ok=True 39.1s cost=¥0.1918 tokens=29139/2918 denials=1
-[10:26:28] 任务 T-ac05-hermetic 通过审核
-{"task_key": "T-ac05-hermetic", "phase": "accepted", "verdict": "PASS", "review_note": "AC05 通过：screenshot_fallback_check.py 已彻底去实机依赖——状态机只用 SYNTHETIC 合成帧+假 screenshot_adb，实机健康探测收敛到 --live 且仅打印。14 项断言齐备（故障降级3项、走ADB不再触主方式3项、恢复探测切回4项、主方式仍坏继续ADB4项），screenshot_method 不被改写有3处断言兜底。UnboundLocalError 已随 FRAME→frame 消除。"}

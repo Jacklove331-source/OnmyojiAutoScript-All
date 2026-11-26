@@ -1,3 +1,0 @@
-[10:24:44] agent_a call ok=True 152.7s cost=¥0.4490 tokens=32931/11510
-[10:24:44] 任务 T-ac05-hermetic 需要返工（剩余 0 次）
-{"task_key": "T-ac05-hermetic", "phase": "pending", "verdict": "REWORK", "review_note": "核心目标没达成：改后脚本在「实机截图通道坏」的场景下仍会崩。原因：main() 里第 60 行 `FRAME = live_image.copy()` 使 FRAME 成为 main 的局部变量（无 global 声明），而它只在 live 探测成功的 else 分支才被赋值。若探测抛异常（正是 48 次 timeout 的场景，被 except 捕获）或返回 None/空帧，FRAME 一直未绑定，第 66 行 `lambda: FRAME.copy()` 在第 72 行被调用时抛 UnboundLocalError，脚本直接崩、AC05 仍 FAIL。本次机器验证能过只是因为 live 探测恰好成功（日志里有 `nemu_connect instance_name:...`），并未覆盖坏通道路径。改法：把 live 探测改为纯信息输出（删掉 `FRAME = live_image.copy()`，只记录 shape/state），并在状态机开始前无条件初始化本地合成帧，例如在第 63 行后加 `FRAME = np.zeros((720, 1280, 3), dtype=np.uint8)`，让 14 项断言始终跑在合成帧上、与 live 探测结果无关。"}

@@ -1,3 +1,0 @@
-[10:16:12] agent_a call ok=True 197.8s cost=¥0.7181 tokens=37342/16306
-[10:16:12] 任务 T-deploy-empty-fix 通过审核
-{"task_key": "T-deploy-empty-fix", "phase": "accepted", "verdict": "PASS", "review_note": "给 B 的非阻断意见（下轮可顺带处理，不阻塞）：①hand_lineup_counts 在单次商店循环内只算一次，若同一过渡位在同一次刷新里出现在两个格子会都买；建议 append targets 后增量 hand_lineup_counts[name]+=1 或记录已购集合。②test_gap_reason 最后一项『识别失败→hand_scan_failed』是空转断言（FakeDeploy.__mro__ is not None），未真正覆盖异常分支；可给 FakeDeploy 加 raise_error 开关补真断言。③实机有效性待确认：_hand_card_detections 在商店打开时扫手牌，若商店面板遮挡 HAND_AREA 则 hand_lineup_counts 恒为 0、限购不触发（退化为旧行为，无回归但不生效）；下轮用 chess_exec3_1002.log 的 shop_skip_transition 计数确认限购确实触发过。"}
