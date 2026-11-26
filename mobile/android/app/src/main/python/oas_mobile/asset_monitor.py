@@ -29,7 +29,7 @@ ASSET_LABELS = {
 }
 
 _LOCK = threading.Lock()
-_STATUS: dict[str, Any] = {"running": False, "config": "", "last_error": ""}
+_STATUS: dict[str, Any] = {"running": False, "config": "", "last_error": "", "phase": ""}
 _FRAME_SIZE: tuple[int, int] = (1280, 720)
 
 _OCR_ENGINE: Any = None
@@ -532,10 +532,12 @@ def load_snapshot(workspace: str, config: str = "oas1") -> dict[str, Any]:
     with _LOCK:
         running = bool(_STATUS.get("running") and _STATUS.get("config") == config)
         status_err = str(_STATUS.get("last_error") or "")
+        phase = str(_STATUS.get("phase") or "") if running else ""
     if not raw:
         snap = _empty_snapshot(config, running=running)
         if status_err:
             snap["last_error"] = status_err
+        snap["phase"] = phase
         snap["history"] = _load_history(workspace, config)[-7:]
         return snap
 
@@ -556,6 +558,7 @@ def load_snapshot(workspace: str, config: str = "oas1") -> dict[str, Any]:
         "items": items,
         "delta": dict(raw.get("delta") or {}) if isinstance(raw.get("delta"), dict) else {},
         "running": running,
+        "phase": phase,
         "labels": dict(ASSET_LABELS),
         "order": list(ASSET_KEYS),
         "history": history[-7:],
@@ -576,35 +579,68 @@ def _get_ocr():
         return _OCR_ENGINE
 
 
-def _capture_rgb(bridge_mod: Any, display: int):
+def _set_phase(text: str) -> None:
+    with _LOCK:
+        _STATUS["phase"] = text
+
+
+def _frame_metrics(frame_size: tuple[int, int]) -> tuple[float, int, int]:
+    """按高度归一化到 720p 并居中裁剪 16:9，与 module.device.Device 保持一致。"""
+    fw, fh = max(1, int(frame_size[0])), max(1, int(frame_size[1]))
+    scale = 720.0 / float(fh)
+    scaled_w = int(round(fw * scale))
+    offset = (scaled_w - 1280) // 2 if scaled_w >= 1280 else -((1280 - scaled_w) // 2)
+    return scale, offset, scaled_w
+
+
+def _normalize_1280(rgb):
+    """将任意比例的截图归一化为 1280x720 RGB，避免 20:9 宽屏横向压扁。"""
     import cv2
     import numpy as np
 
-    raw = bridge_mod.display_screenshot(display)
-    if not raw:
-        return None, (1280, 720)
-    bgr = cv2.imdecode(np.frombuffer(raw, np.uint8), cv2.IMREAD_COLOR)
-    if bgr is None or bgr.size == 0:
-        return None, (1280, 720)
-    h, w = bgr.shape[:2]
-    rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
-    return rgb, (w, h)
+    h, w = rgb.shape[:2]
+    if (w, h) == (1280, 720):
+        return rgb
+    _, offset, scaled_w = _frame_metrics((w, h))
+    resized = cv2.resize(rgb, (scaled_w, 720), interpolation=cv2.INTER_AREA)
+    if scaled_w >= 1280:
+        return resized[:, offset:offset + 1280]
+    padded = np.zeros((720, 1280, 3), dtype=resized.dtype)
+    left = -offset
+    padded[:, left:left + scaled_w] = resized
+    return padded
+
+
+def _capture_rgb(bridge_mod: Any, display: int, retries: int = 1, interval: float = 0.6):
+    import cv2
+    import numpy as np
+
+    for attempt in range(max(1, int(retries))):
+        raw = bridge_mod.display_screenshot(display)
+        if raw:
+            bgr = cv2.imdecode(np.frombuffer(raw, np.uint8), cv2.IMREAD_COLOR)
+            if bgr is not None and bgr.size > 0:
+                h, w = bgr.shape[:2]
+                rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
+                return rgb, (w, h)
+        if attempt + 1 < retries:
+            time.sleep(interval)
+    return None, (1280, 720)
 
 
 def _ocr_rows_1280(rgb, frame_size: tuple[int, int], roi_1280: Optional[tuple[int, int, int, int]] = None, scale: int = 1) -> list[dict[str, Any]]:
     import cv2
 
-    fw, fh = frame_size
-    sx, sy = fw / 1280.0, fh / 720.0
+    norm = _normalize_1280(rgb)
     offset_x, offset_y = 0, 0
-    img = rgb
+    img = norm
     if roi_1280 is not None:
         rx, ry, rw, rh = roi_1280
-        px0 = max(0, int(rx * sx))
-        py0 = max(0, int(ry * sy))
-        px1 = min(fw, int((rx + rw) * sx))
-        py1 = min(fh, int((ry + rh) * sy))
-        crop = rgb[py0:py1, px0:px1]
+        px0 = max(0, int(rx))
+        py0 = max(0, int(ry))
+        px1 = min(1280, int(rx + rw))
+        py1 = min(720, int(ry + rh))
+        crop = norm[py0:py1, px0:px1]
         if crop.size == 0:
             return []
         offset_x, offset_y = px0, py0
@@ -632,21 +668,98 @@ def _ocr_rows_1280(rgb, frame_size: tuple[int, int], roi_1280: Optional[tuple[in
             continue
         rows.append({
             "text": str(getattr(item, "ocr_text", "") or ""),
-            "x": bx / sx,
-            "y": by / sy,
-            "w": bw / sx,
-            "h": bh / sy,
-            "box": [bx / sx, by / sy, bw / sx, bh / sy],
+            "x": bx,
+            "y": by,
+            "w": bw,
+            "h": bh,
+            "box": [bx, by, bw, bh],
             "score": float(getattr(item, "score", 0.0) or 0.0),
         })
     return rows
 
 
 def _tap_1280(bridge_mod: Any, display: int, x: int, y: int, frame_size: tuple[int, int]) -> None:
-    fw, fh = frame_size
-    tx = int(round(x * fw / 1280.0))
-    ty = int(round(y * fh / 720.0))
+    fw, fh = max(1, int(frame_size[0])), max(1, int(frame_size[1]))
+    scale, offset, _ = _frame_metrics((fw, fh))
+    tx = min(fw - 1, max(0, int(round((float(x) + offset) / scale))))
+    ty = min(fh - 1, max(0, int(round(float(y) / scale))))
     bridge_mod.display_tap(display, tx, ty)
+
+
+def _ensure_virtual_display(bridge_mod: Any, display: int = -1) -> int:
+    """复用后台虚拟屏并把阴阳师搬入虚拟屏；未启动时自动拉起虚拟屏与游戏。"""
+    if display >= 0:
+        return display
+
+    pkg = (
+        bridge_mod.target_package()
+        if callable(getattr(bridge_mod, "target_package", None))
+        else "com.netease.onmyoji"
+    )
+    vd_running = callable(getattr(bridge_mod, "vdstream_running", None)) and bool(bridge_mod.vdstream_running())
+    if vd_running:
+        disp = bridge_mod.vdstream_display() if callable(getattr(bridge_mod, "vdstream_display", None)) else -1
+        if disp >= 0:
+            info = (
+                bridge_mod.vdstream_info()
+                if callable(getattr(bridge_mod, "vdstream_info", None))
+                else {}
+            )
+            if isinstance(info, dict) and info.get("target_on_display") is False:
+                ensured = (
+                    bridge_mod.display_ensure_app(pkg)
+                    if callable(getattr(bridge_mod, "display_ensure_app", None))
+                    else -1
+                )
+                if ensured >= 0:
+                    return ensured
+                if callable(getattr(bridge_mod, "ensure_game_started", None)):
+                    bridge_mod.ensure_game_started(pkg)
+                    ensured = bridge_mod.display_ensure_app(pkg)
+                    if ensured >= 0:
+                        return ensured
+            return disp
+
+    # 虚拟屏尚未启动（例如刚重开 App）：按 /background/start 同款流程自动建屏并拉起游戏
+    started = True
+    if callable(getattr(bridge_mod, "vdstream_start", None)):
+        started = bool(bridge_mod.vdstream_start(1280, 720))
+    if not started:
+        return -1
+
+    disp = (
+        bridge_mod.display_ensure_app(pkg)
+        if callable(getattr(bridge_mod, "display_ensure_app", None))
+        else -1
+    )
+    if disp < 0 and callable(getattr(bridge_mod, "ensure_game_started", None)):
+        bridge_mod.ensure_game_started(pkg)
+        if callable(getattr(bridge_mod, "display_ensure_app", None)):
+            disp = bridge_mod.display_ensure_app(pkg)
+    return disp
+
+
+def _try_return_to_courtyard(bridge_mod: Any, disp: int, rgb, fsize: tuple[int, int], rows: list[dict], max_taps: int = 4):
+    """只读方式尝试安全退回庭院（遇到退出确认框自动点取消）。"""
+    for _ in range(max_taps):
+        if looks_courtyard(rows):
+            return rgb, fsize, rows, True
+        joined_txt = "".join(str(r.get("text") or "") for r in rows)
+        if "退出游戏" in joined_txt or "退出阴阳师" in joined_txt or "确定要退出" in joined_txt:
+            cancel_xy = (835, 416)
+            for r in rows:
+                if "取消" in str(r.get("text") or ""):
+                    cancel_xy = (int(r["x"] + r["w"] / 2), int(r["y"] + r["h"] / 2))
+                    break
+            _tap_1280(bridge_mod, disp, cancel_xy[0], cancel_xy[1], fsize)
+        else:
+            _tap_1280(bridge_mod, disp, 35, 35, fsize)
+        time.sleep(1.0)
+        rgb, fsize = _capture_rgb(bridge_mod, disp, retries=3, interval=0.5)
+        if rgb is None:
+            return None, fsize, [], False
+        rows = _ocr_rows_1280(rgb, fsize)
+    return rgb, fsize, rows, looks_courtyard(rows)
 
 
 def refresh_assets(
@@ -672,7 +785,7 @@ def refresh_assets(
                 "error": "资产巡检正在进行中",
                 "snapshot": load_snapshot(workspace, config),
             }
-        _STATUS.update(running=True, config=config, last_error="")
+        _STATUS.update(running=True, config=config, last_error="", phase="正在检查后台通道...")
 
     try:
         from . import bridge
@@ -686,44 +799,46 @@ def refresh_assets(
             snap = merge_snapshot(workspace, config, {}, error="Shizuku 桥接未就绪")
             return {"ok": False, "error": "Shizuku 桥接未就绪", "snapshot": snap}
 
-        disp = display if display >= 0 else bridge.vdstream_display()
+        _set_phase("正在启动后台虚拟屏与游戏...")
+        disp = _ensure_virtual_display(bridge, display=display)
         if disp < 0:
-            disp = bridge.display_ensure_app(bridge.target_package())
-        if disp < 0:
-            snap = merge_snapshot(workspace, config, {}, error="虚拟屏未就绪")
-            return {"ok": False, "error": "虚拟屏未就绪", "snapshot": snap}
+            snap = merge_snapshot(workspace, config, {}, error="虚拟屏未就绪，请检查 Shizuku 授权或手动打开一次阴阳师")
+            return {"ok": False, "error": "虚拟屏未就绪，请检查 Shizuku 授权或手动打开一次阴阳师", "snapshot": snap}
 
-        # Step 1: Ensure we are in courtyard (read-only back taps, max 4)
-        rgb, fsize = _capture_rgb(bridge, disp)
+        # Step 1: 获取虚拟屏画面并确保处于庭院（冷启动/在标题页时自动登录进庭院）
+        _set_phase("正在读取虚拟屏画面...")
+        rgb, fsize = _capture_rgb(bridge, disp, retries=10, interval=0.6)
         if rgb is None:
             snap = merge_snapshot(workspace, config, {}, error="无法获取虚拟屏截图")
             return {"ok": False, "error": "无法获取虚拟屏截图", "snapshot": snap}
 
         rows = _ocr_rows_1280(rgb, fsize)
-        for _ in range(4):
-            if looks_courtyard(rows):
-                break
-            joined_txt = "".join(str(r.get("text") or "") for r in rows)
-            if "退出游戏" in joined_txt or "确定要退出" in joined_txt:
-                # 防止点返回弹出了退出游戏框，优先点“取消”
-                cancel_xy = (835, 416)
-                for r in rows:
-                    if "取消" in str(r.get("text") or ""):
-                        cancel_xy = (int(r["x"] + r["w"] / 2), int(r["y"] + r["h"] / 2))
-                        break
-                _tap_1280(bridge, disp, cancel_xy[0], cancel_xy[1], fsize)
-            else:
-                _tap_1280(bridge, disp, 35, 35, fsize)
-            time.sleep(1.0)
-            rgb, fsize = _capture_rgb(bridge, disp)
-            if rgb is None:
-                break
-            rows = _ocr_rows_1280(rgb, fsize)
+        in_courtyard = looks_courtyard(rows)
+        if not in_courtyard:
+            # 若刚冷启动停在标题页/加载页，调用统一登录守卫进庭院
+            _set_phase("正在等待游戏登录并进入庭院...")
+            try:
+                from . import login as login_mod
 
-        if not looks_courtyard(rows):
+                if callable(getattr(login_mod, "ensure_logged_in", None)):
+                    login_mod.ensure_logged_in(disp, timeout=180.0)
+                    time.sleep(1.2)
+                    rgb, fsize = _capture_rgb(bridge, disp, retries=5, interval=0.6)
+                    if rgb is not None:
+                        rows = _ocr_rows_1280(rgb, fsize)
+                        in_courtyard = looks_courtyard(rows)
+            except Exception:  # noqa: BLE001
+                pass
+
+        if not in_courtyard and rgb is not None:
+            _set_phase("正在安全返回庭院...")
+            rgb, fsize, rows, in_courtyard = _try_return_to_courtyard(bridge, disp, rgb, fsize, rows, max_taps=4)
+
+        if not in_courtyard or rgb is None:
             snap = merge_snapshot(workspace, config, {}, error="当前不在庭院，跳过资产巡检")
             return {"ok": False, "error": "当前不在庭院，跳过资产巡检", "snapshot": snap}
 
+        _set_phase("正在识别庭院顶栏资产...")
         readings: dict[str, dict[str, Any]] = {}
         top = extract_top_values(rows)
         courtyard_jade: Optional[int] = None
@@ -748,10 +863,17 @@ def refresh_assets(
                 "text": top[2].get("text", ""),
             }
 
-        # Step 2: Tap stamina icon for exact AP tooltip
-        _tap_1280(bridge, disp, 950, 30, fsize)
-        time.sleep(0.8)
-        rgb2, fsize2 = _capture_rgb(bridge, disp)
+        # Step 2: 点击体力图标读取精确体力值（优先按识别到的顶栏第 3 项中心点击）
+        _set_phase("正在读取精确体力...")
+        stamina_xy = (950, 30)
+        if len(top) >= 3:
+            stamina_xy = (
+                int(top[2]["x"] + top[2].get("w", 40) / 2),
+                int(top[2]["y"] + top[2].get("h", 20) / 2),
+            )
+        _tap_1280(bridge, disp, stamina_xy[0], stamina_xy[1], fsize)
+        time.sleep(0.9)
+        rgb2, fsize2 = _capture_rgb(bridge, disp, retries=3, interval=0.4)
         if rgb2 is not None:
             exact_ap = extract_stamina_exact(_ocr_rows_1280(rgb2, fsize2))
             if exact_ap is not None:
@@ -762,28 +884,43 @@ def refresh_assets(
                     "text": str(exact_ap),
                 }
         _tap_1280(bridge, disp, 1200, 620, fsize)
-        time.sleep(0.5)
+        time.sleep(0.6)
 
-        # Step 3: Enter Shop (read-only topbar), upscale 3x, anchor-validate jade, then return
+        # Step 3: 只读进入商店识别皮肤券/神秘符咒/魂玉/勾玉（3x 放大 + 勾玉锚点校验），随后安全退回庭院
+        _set_phase("正在识别商店顶栏资产...")
         shop_xy = (715, 655)
         for r in rows:
             if "商店" in str(r.get("text") or ""):
                 shop_xy = (int(r["x"] + r["w"] / 2), int(r["y"] + r["h"] / 2))
                 break
         _tap_1280(bridge, disp, shop_xy[0], shop_xy[1], fsize)
-        time.sleep(1.5)
-        rgb3, fsize3 = _capture_rgb(bridge, disp)
-        if rgb3 is not None:
-            shop_rows = _ocr_rows_1280(rgb3, fsize3, roi_1280=(450, 0, 830, 60), scale=3)
+        time.sleep(1.8)
+        for _ in range(2):
+            rgb3, fsize3 = _capture_rgb(bridge, disp, retries=3, interval=0.5)
+            if rgb3 is None:
+                break
+            shop_rows = _ocr_rows_1280(rgb3, fsize3, roi_1280=(450, 0, 830, 65), scale=3)
             shop_vals = extract_shop_bar(shop_rows, courtyard_jade)
-            readings.update(shop_vals)
+            if shop_vals:
+                readings.update(shop_vals)
+                break
+            time.sleep(1.0)
 
-        # Return cleanly to courtyard
+        # 安全返回庭院（防误触退出游戏框）
+        _set_phase("正在返回庭院...")
         for _ in range(4):
             _tap_1280(bridge, disp, 35, 35, fsize)
             time.sleep(0.9)
-            rgb_back, fb_size = _capture_rgb(bridge, disp)
-            if rgb_back is not None and looks_courtyard(_ocr_rows_1280(rgb_back, fb_size)):
+            rgb_back, fb_size = _capture_rgb(bridge, disp, retries=2, interval=0.4)
+            if rgb_back is None:
+                continue
+            back_rows = _ocr_rows_1280(rgb_back, fb_size)
+            if looks_courtyard(back_rows):
+                break
+            joined_back = "".join(str(r.get("text") or "") for r in back_rows)
+            if "退出游戏" in joined_back or "退出阴阳师" in joined_back:
+                _tap_1280(bridge, disp, 835, 416, fb_size)
+                time.sleep(0.6)
                 break
 
         snap = merge_snapshot(workspace, config, readings, error="")
@@ -797,6 +934,7 @@ def refresh_assets(
     finally:
         with _LOCK:
             _STATUS["running"] = False
+            _STATUS["phase"] = ""
 
 
 def refresh_async(

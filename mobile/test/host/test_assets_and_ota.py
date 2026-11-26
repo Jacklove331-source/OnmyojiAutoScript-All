@@ -94,14 +94,57 @@ class TestAssetMonitor(unittest.TestCase):
             shizuku_available=lambda: True,
             vdstream_running=lambda: True,
             vdstream_display=lambda: 7,
+            vdstream_info=lambda: {"target_on_display": True},
+            target_package=lambda: "com.netease.onmyoji",
             display_screenshot=lambda d: b"",
         )
         with tempfile.TemporaryDirectory() as ws:
-            with patch.dict(sys.modules, {"oas_mobile.bridge": fake_bridge}):
+            with patch.dict(sys.modules, {"oas_mobile.bridge": fake_bridge}), patch.object(
+                asset_monitor.time, "sleep", return_value=None
+            ):
                 res = asset_monitor.refresh_assets(ws, config="oas1", force=True)
             self.assertFalse(res["ok"])
             self.assertNotEqual(res["error"], "Shizuku 桥接未就绪")
             self.assertEqual(res["error"], "无法获取虚拟屏截图")
+
+    def test_ensure_virtual_display_auto_starts_vdstream_and_game(self):
+        # 重开 App 后虚拟屏未启动时，应自动启动 vdstream 并在需要时拉起游戏
+        from types import SimpleNamespace
+
+        calls = []
+
+        def fake_vdstream_start(w, h):
+            calls.append(("vdstream_start", w, h))
+            return True
+
+        def fake_ensure_app(pkg):
+            calls.append(("display_ensure_app", pkg))
+            # 第一次游戏未运行返回 -1，拉起游戏后第二次返回 displayId 9
+            return 9 if ("ensure_game_started", pkg) in calls else -1
+
+        def fake_ensure_game(pkg):
+            calls.append(("ensure_game_started", pkg))
+            return True
+
+        fake_bridge = SimpleNamespace(
+            vdstream_running=lambda: False,
+            vdstream_display=lambda: -1,
+            vdstream_start=fake_vdstream_start,
+            target_package=lambda: "com.netease.onmyoji",
+            display_ensure_app=fake_ensure_app,
+            ensure_game_started=fake_ensure_game,
+        )
+        disp = asset_monitor._ensure_virtual_display(fake_bridge)
+        self.assertEqual(disp, 9)
+        self.assertEqual(
+            calls,
+            [
+                ("vdstream_start", 1280, 720),
+                ("display_ensure_app", "com.netease.onmyoji"),
+                ("ensure_game_started", "com.netease.onmyoji"),
+                ("display_ensure_app", "com.netease.onmyoji"),
+            ],
+        )
 
 
 class TestOtaUpdater(unittest.TestCase):
@@ -116,7 +159,7 @@ class TestOtaUpdater(unittest.TestCase):
     def test_config_masks_token(self):
         with tempfile.TemporaryDirectory() as ws:
             res = ota_updater.save_config(ws, {
-                "repo": "example-org/oas-datapack",
+                "repo": "wrsndm1/oas-private",
                 "branch": "main",
                 "token": "secret-gitcode-token-9876",
             })
@@ -166,7 +209,7 @@ class TestOtaUpdater(unittest.TestCase):
                 "file_name": "oasx-mobile-0.3.4+99-arm64-v8a.apk",
                 "size_bytes": 150000000,
                 "sha256": "a" * 64,
-                "download_url": "https://gitcode.com/example-org/oas-datapack/releases/download/v0.3.4-b99/a.apk",
+                "download_url": "https://gitcode.com/wrsndm1/oas-private/releases/download/v0.3.4-b99/a.apk",
                 "note": "test release",
             },
         })

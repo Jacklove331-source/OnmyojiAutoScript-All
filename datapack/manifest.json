@@ -1,21 +1,21 @@
 {
-    "version":  "2026.11.26.094711",
-    "source":  "github-public",
-    "note":  "在线更新升级：去掉私库字样，支持一键切换 GitHub / GitCode 双公开源",
-    "updated_at":  "2026-11-26T09:47:11",
-    "file":  "https://github.com/Jacklove331-source/OnmyojiAutoScript-All/releases/download/v0.3.4-b79/oas-patch.zip",
-    "size_bytes":  26477825,
-    "file_count":  3571,
-    "sha256":  "a1e7e44c4a94cf5801bd52482ae86a0ccbe5891f1964019d71c079c5823c2fde",
-    "apk":  {
-                "version_name":  "0.3.4",
-                "build_number":  79,
-                "tag":  "v0.3.4-b79",
-                "file_name":  "OASX-Mobile-0.3.4-b79-arm64-v8a.apk",
-                "size_bytes":  154294098,
-                "sha256":  "d0cd773f4248bdbab1019862c8108affb40efc292253c082b840d4d25c3a754b",
-                "download_url":  "https://github.com/Jacklove331-source/OnmyojiAutoScript-All/releases/download/v0.3.4-b79/OASX-Mobile-0.3.4-b79-arm64-v8a.apk",
-                "note":  "去掉私库字样，卡片直接可选 GitHub / GitCode（国内）双公开源更新",
-                "updated_at":  "2026-11-26T09:47:11"
-            }
+  "version": "2026.11.26.101513",
+  "source": "mobile",
+  "note": "fix asset monitor auto-start virtual display and courtyard login",
+  "updated_at": "2026-11-26T10:15:13",
+  "file": "datapack/oas-patch.zip",
+  "size_bytes": 26370995,
+  "file_count": 3544,
+  "sha256": "7d7e780f66a91681dca9b740503c2ffd0cb12488b73ace5cbf54a29243e1ad78",
+  "apk": {
+    "version_name": "0.3.4",
+    "build_number": 79,
+    "tag": "v0.3.4-b79",
+    "file_name": "OASX-Mobile-0.3.4-b79-arm64-v8a.apk",
+    "size_bytes": 154294098,
+    "sha256": "d0cd773f4248bdbab1019862c8108affb40efc292253c082b840d4d25c3a754b",
+    "download_url": "https://github.com/Jacklove331-source/OnmyojiAutoScript-All/releases/download/v0.3.4-b79/OASX-Mobile-0.3.4-b79-arm64-v8a.apk",
+    "note": "去掉私库字样，卡片直接可选 GitHub / GitCode（国内）双公开源更新",
+    "updated_at": "2026-11-26T09:47:11"
+  }
 }
