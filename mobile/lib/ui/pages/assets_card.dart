@@ -167,6 +167,15 @@ Future<void> showAssetsDetailDialog(
                   ),
                 ),
               const Divider(height: 24),
+              if ((snapshot['last_error']?.toString() ?? '').isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    '上次巡检提示: ${snapshot['last_error']}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 11, color: Colors.redAccent),
+                  ),
+                ),
               const Text(
                 '纯截图 OCR 只读，绝不点购买/确认；每天任务全部跑完自动更新 1 次',
                 textAlign: TextAlign.center,
@@ -259,6 +268,12 @@ class _OasAssetsCardState extends State<OasAssetsCard> {
 
   OasApi get _api => widget.api ?? OasApi.i;
 
+  String? _extractError(Map<String, dynamic> data) {
+    final String err = (data['last_error'] ?? '').toString().trim();
+    if (err.isNotEmpty) return err;
+    return null;
+  }
+
   Future<void> _load() async {
     setState(() {
       _loading = true;
@@ -267,10 +282,15 @@ class _OasAssetsCardState extends State<OasAssetsCard> {
     try {
       final data = await _api.assetsSnapshot();
       if (!mounted) return;
+      final bool running = data['running'] == true;
       setState(() {
         _snapshot = data;
-        _loading = false;
+        _loading = running;
+        _error = running ? null : _extractError(data);
       });
+      if (running) {
+        await _pollUntilDone();
+      }
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -281,6 +301,28 @@ class _OasAssetsCardState extends State<OasAssetsCard> {
     }
   }
 
+  Future<void> _pollUntilDone() async {
+    // 后台巡检可能包含拉虚拟屏 + 登录 + 多次 OCR，轮询直到 running 变为 false（上限约 120s）
+    for (int i = 0; i < 80; i++) {
+      await Future<void>.delayed(Duration(milliseconds: i == 0 ? 600 : 1500));
+      if (!mounted) return;
+      final data = await _api.assetsSnapshot();
+      if (!mounted) return;
+      final bool running = data['running'] == true;
+      setState(() {
+        _snapshot = data;
+        _loading = running;
+        _error = running ? null : _extractError(data);
+      });
+      if (!running) return;
+    }
+    if (!mounted) return;
+    setState(() {
+      _loading = false;
+      _error = '巡检耗时较长，请稍后再次点更新查看结果';
+    });
+  }
+
   Future<void> _refresh() async {
     setState(() {
       _loading = true;
@@ -288,19 +330,13 @@ class _OasAssetsCardState extends State<OasAssetsCard> {
     });
     try {
       await _api.assetsRefresh(force: true);
-      await Future<void>.delayed(const Duration(seconds: 3));
       if (!mounted) return;
-      final data = await _api.assetsSnapshot();
-      if (!mounted) return;
-      setState(() {
-        _snapshot = data;
-        _loading = false;
-      });
+      await _pollUntilDone();
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = '更新失败';
+        _error = '更新失败，请确认后台服务已连接';
       });
     }
   }
@@ -401,6 +437,10 @@ class _OasAssetsCardState extends State<OasAssetsCard> {
   }
 
   String _buildSubtitle() {
+    if (_loading) {
+      final String phase = (_snapshot['phase'] ?? '').toString().trim();
+      return phase.isNotEmpty ? phase : '正在巡检采集资产，请稍候...';
+    }
     final captured = _snapshot['captured_at'];
     final short = _formatCapturedAt(captured);
     if (short != null) {
