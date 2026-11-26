@@ -54,8 +54,10 @@ class _OasOtaCardState extends State<OasOtaCard> {
     return {};
   }
 
-  String get _repo => _str('repo', '');
+  String get _repo => _str('repo', 'Jacklove331-source/OnmyojiAutoScript-All');
   String get _branch => _str('branch', 'main');
+  String get _baseUrl => _str('base_url', 'https://github.com');
+  bool get _isGitHub => _baseUrl.toLowerCase().contains('github.com');
   String get _installedVersion {
     if (_status.containsKey('installedVersion')) {
       return _str('installedVersion', '');
@@ -145,7 +147,7 @@ class _OasOtaCardState extends State<OasOtaCard> {
       return;
     }
     setState(() => _apkDownload = res);
-    _toast('正在从私库下载新版安装包…');
+    _toast('正在下载新版安装包…');
     _startApkPolling();
   }
 
@@ -192,6 +194,7 @@ class _OasOtaCardState extends State<OasOtaCard> {
   }
 
   Future<void> _editConfig() async {
+    final baseUrlController = TextEditingController(text: _baseUrl);
     final repoController = TextEditingController(text: _repo);
     final branchController = TextEditingController(text: _branch);
     final tokenController = TextEditingController();
@@ -199,14 +202,24 @@ class _OasOtaCardState extends State<OasOtaCard> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('配置 GitCode 私库'),
+        title: const Text('更新源设置'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
+                controller: baseUrlController,
+                decoration: const InputDecoration(
+                  labelText: '更新平台地址',
+                  hintText: 'https://github.com 或 https://gitcode.com',
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
                 controller: repoController,
-                decoration: const InputDecoration(labelText: '仓库'),
+                decoration: const InputDecoration(
+                  labelText: '仓库（owner/repo）',
+                ),
               ),
               const SizedBox(height: 8),
               TextField(
@@ -218,7 +231,7 @@ class _OasOtaCardState extends State<OasOtaCard> {
                 controller: tokenController,
                 obscureText: true,
                 decoration: const InputDecoration(
-                  labelText: 'GitCode 访问令牌',
+                  labelText: '访问令牌（公开库可留空）',
                   hintText: '留空保持原令牌不变；填新值覆盖',
                 ),
               ),
@@ -239,25 +252,31 @@ class _OasOtaCardState extends State<OasOtaCard> {
     );
 
     if (confirmed != true) {
+      baseUrlController.dispose();
       repoController.dispose();
       branchController.dispose();
       tokenController.dispose();
       return;
     }
 
+    final baseUrl = baseUrlController.text.trim().isEmpty
+        ? _baseUrl
+        : baseUrlController.text.trim();
     final repo = repoController.text.trim().isEmpty
-        ? ''
+        ? _repo
         : repoController.text.trim();
     final branch =
         branchController.text.trim().isEmpty ? 'main' : branchController.text.trim();
     final token = tokenController.text.trim();
 
+    baseUrlController.dispose();
     repoController.dispose();
     branchController.dispose();
     tokenController.dispose();
 
     try {
       final Map<String, dynamic> patch = <String, dynamic>{
+        'base_url': baseUrl,
         'repo': repo,
         'branch': branch,
       };
@@ -380,7 +399,7 @@ class _OasOtaCardState extends State<OasOtaCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'GitCode 私库更新（数据包热更 / APK 自更新）',
+            '在线更新（数据包热更 / APK 自更新）',
             style: Theme.of(context)
                 .textTheme
                 .titleMedium
@@ -400,15 +419,17 @@ class _OasOtaCardState extends State<OasOtaCard> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: _tokenConfigured
+                  color: (_tokenConfigured || _isGitHub)
                       ? p.jade.withOpacity(0.12)
                       : p.inkDim.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  _tokenConfigured ? '令牌已配置' : '未配令牌',
+                  _tokenConfigured
+                      ? '令牌已配置'
+                      : (_isGitHub ? 'GitHub 公开源' : '未配令牌'),
                   style: TextStyle(
-                    color: _tokenConfigured ? p.jade : p.inkDim,
+                    color: (_tokenConfigured || _isGitHub) ? p.jade : p.inkDim,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
@@ -479,7 +500,7 @@ class _OasOtaCardState extends State<OasOtaCard> {
                         FilledButton(
                           onPressed: _apkDownloading ? null : _downloadApk,
                           child: Text(
-                              _apkDownloading ? '下载中…' : '从私库下载新版 APK'),
+                              _apkDownloading ? '下载中…' : '下载新版 APK'),
                         ),
                     ],
                   ),
@@ -504,7 +525,7 @@ class _OasOtaCardState extends State<OasOtaCard> {
             children: [
               OutlinedButton(
                 onPressed: _loading ? null : _editConfig,
-                child: const Text('配令牌/仓库'),
+                child: const Text('更新源设置'),
               ),
               OutlinedButton(
                 onPressed: _loading ? null : _check,

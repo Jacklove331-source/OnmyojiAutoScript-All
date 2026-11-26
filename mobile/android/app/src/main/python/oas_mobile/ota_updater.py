@@ -48,9 +48,9 @@ __all__ = [
 # 常量
 # --------------------------------------------------------------------------- #
 
-DEFAULT_REPO = ""
+DEFAULT_REPO = "Jacklove331-source/OnmyojiAutoScript-All"
 DEFAULT_BRANCH = "main"
-DEFAULT_BASE_URL = "https://gitcode.com"
+DEFAULT_BASE_URL = "https://github.com"
 MANIFEST_PATH = "datapack/manifest.json"
 DEFAULT_PATCH_FILE = "datapack/oas-patch.zip"
 
@@ -308,11 +308,37 @@ def _is_gitcode_base(base_url: str) -> bool:
     return "gitcode.com" in host
 
 
+def _is_github_base(base_url: str) -> bool:
+    """base_url 是否为标准 GitHub 站点（优先走 raw.githubusercontent.com）。"""
+    try:
+        parts = urllib.parse.urlsplit(str(base_url or ""))
+    except Exception:
+        return False
+    host = (parts.netloc or "").lower()
+    return host in ("github.com", "www.github.com", "raw.githubusercontent.com")
+
+
+class _SafeCrossHostRedirect(urllib.request.HTTPRedirectHandler):
+    """跨域名重定向时自动剥离认证头，避免令牌泄露到第三方对象存储/CDN。"""
+
+    def redirect_request(self, req_obj, fp, code, msg, hdrs, newurl):
+        new_req = super().redirect_request(req_obj, fp, code, msg, hdrs, newurl)
+        if new_req is not None:
+            old_host = (urllib.parse.urlsplit(req_obj.full_url).netloc or "").lower()
+            new_host = (urllib.parse.urlsplit(newurl).netloc or "").lower()
+            if old_host != new_host:
+                for hk in list(new_req.headers.keys()):
+                    if hk.lower() in ("authorization", "private-token"):
+                        new_req.remove_header(hk)
+        return new_req
+
+
 def _http_get(url: str, headers: dict, timeout: int = 30) -> bytes:
     """执行一次 GET 请求，异常统一转换为 :class:`OTAFetchError`（消息不含 token）。"""
     request = urllib.request.Request(url, headers=headers, method="GET")
+    opener = urllib.request.build_opener(_SafeCrossHostRedirect())
     try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
+        with opener.open(request, timeout=timeout) as response:
             data = response.read(MAX_DOWNLOAD_BYTES + 1)
     except urllib.error.HTTPError as exc:
         code = int(getattr(exc, "code", 0) or 0)
@@ -334,11 +360,13 @@ def _http_get(url: str, headers: dict, timeout: int = 30) -> bytes:
 
 
 def _download_bytes(cfg: dict, file_path: str, timeout: int = 30) -> bytes:
-    """从 GitCode（或自定义 raw 服务）下载文件原始字节。
+    """从 GitHub 公开库、GitCode 仓库或直链 URL 下载文件原始字节。
 
-    优先使用 API v5：``{base}/api/v5/repos/{owner}/{repo}/raw/{path}?ref={branch}``。
-    当返回 401/403/404 或 base_url 为自定义 raw 服务时，回退一次到
-    ``{base}/{owner}/{repo}/raw/{branch}/{path}``。
+    - 若 ``file_path`` 本身为 ``http(s)://`` 直链（例如 GitHub Release 附件链接），直接下载；
+    - 若 ``base_url`` 为 GitHub，优先走 ``https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{path}``，
+      失败时回退到 ``https://github.com/{owner}/{repo}/raw/{branch}/{path}``；
+    - 若 ``base_url`` 为 GitCode，优先走 API v5，失败回退 raw 直链；
+    - 公开库无需配置 token 即可直接访问。
     """
     cfg = cfg if isinstance(cfg, dict) else {}
     repo = str(cfg.get("repo") or DEFAULT_REPO).strip() or DEFAULT_REPO
@@ -346,7 +374,21 @@ def _download_bytes(cfg: dict, file_path: str, timeout: int = 30) -> bytes:
     base_url = str(cfg.get("base_url") or DEFAULT_BASE_URL).strip().rstrip("/") or DEFAULT_BASE_URL
     token = str(cfg.get("token") or "")
 
-    rel = str(file_path or "").replace("\\", "/").strip()
+    raw_target = str(file_path or "").strip()
+    if raw_target.startswith("http://") or raw_target.startswith("https://"):
+        headers = {"User-Agent": USER_AGENT, "Accept": "*/*"}
+        url_host = (urllib.parse.urlsplit(raw_target).netloc or "").lower()
+        base_host = (urllib.parse.urlsplit(base_url).netloc or "").lower()
+        if token and (url_host == base_host or "gitcode.com" in url_host):
+            if _is_gitcode_base(base_url) or "gitcode.com" in url_host:
+                headers["PRIVATE-TOKEN"] = token
+            headers["Authorization"] = "Bearer " + token
+        try:
+            return _http_get(raw_target, headers, timeout=max(timeout, 60))
+        except OTAFetchError as exc:
+            raise OTAFetchError(_mask_token(str(exc), token)) from None
+
+    rel = raw_target.replace("\\", "/").strip()
     while rel.startswith("/"):
         rel = rel[1:]
     if not rel:
@@ -359,12 +401,29 @@ def _download_bytes(cfg: dict, file_path: str, timeout: int = 30) -> bytes:
 
     headers = {"User-Agent": USER_AGENT, "Accept": "*/*"}
     if token:
-        headers["PRIVATE-TOKEN"] = token
+        if _is_gitcode_base(base_url):
+            headers["PRIVATE-TOKEN"] = token
         headers["Authorization"] = "Bearer " + token
 
     quoted_path = urllib.parse.quote(rel, safe="/")
     quoted_branch = urllib.parse.quote(branch, safe="")
     errors: list[str] = []
+
+    if _is_github_base(base_url):
+        gh_urls = [
+            "https://raw.githubusercontent.com/%s/%s/%s/%s" % (
+                owner, name, quoted_branch, quoted_path
+            ),
+            "https://github.com/%s/%s/raw/%s/%s" % (
+                owner, name, quoted_branch, quoted_path
+            ),
+        ]
+        for u in gh_urls:
+            try:
+                return _http_get(u, headers, timeout)
+            except OTAFetchError as exc:
+                errors.append(str(exc))
+        raise OTAFetchError(_mask_token("；".join(errors) or "下载失败", token))
 
     if _is_gitcode_base(base_url):
         api_url = "%s/api/v5/repos/%s/%s/raw/%s?ref=%s" % (
@@ -1043,7 +1102,7 @@ def download_apk_async(workspace: str) -> dict:
 
     apk_info = _build_apk_update_summary(remote)
     if not apk_info:
-        return {"ok": False, "error": "私库清单中暂无新版 APK 发布记录"}
+        return {"ok": False, "error": "远端清单中暂无新版 APK 发布记录"}
 
     cfg = load_config(workspace)
     token = str(cfg.get("token") or "")

@@ -161,6 +161,36 @@ class TestOtaUpdater(unittest.TestCase):
             "apk": {"build_number": 99, "download_url": "file:///etc/passwd"},
         }))
 
+    def test_github_public_raw_and_release_url_without_token(self):
+        # 验证 GitHub 公开源免令牌优先走 raw.githubusercontent.com，且支持 Release 直链
+        from unittest.mock import patch
+
+        called = []
+
+        def fake_http_get(url, headers, timeout=30):
+            called.append((url, dict(headers)))
+            return b'{"version":"2026.11.26","sha256":"' + b"a" * 64 + b'"}'
+
+        cfg = {
+            "base_url": "https://github.com",
+            "repo": "Jacklove331-source/OnmyojiAutoScript-All",
+            "branch": "main",
+            "token": "",
+        }
+        with patch.object(ota_updater, "_http_get", side_effect=fake_http_get):
+            data = ota_updater._download_bytes(cfg, "datapack/manifest.json")
+            self.assertIn(b"2026.11.26", data)
+            direct_url = "https://github.com/Jacklove331-source/OnmyojiAutoScript-All/releases/download/v0.3.4-b78/oas-patch.zip"
+            ota_updater._download_bytes(cfg, direct_url)
+
+        self.assertEqual(
+            called[0][0],
+            "https://raw.githubusercontent.com/Jacklove331-source/OnmyojiAutoScript-All/main/datapack/manifest.json",
+        )
+        self.assertNotIn("PRIVATE-TOKEN", called[0][1])
+        self.assertNotIn("Authorization", called[0][1])
+        self.assertEqual(called[1][0], direct_url)
+
 
 class TestDeviceGuard(unittest.TestCase):
     def test_time_window_same_day_and_overnight(self):
