@@ -43,10 +43,10 @@ C_DIALOG_CANCEL = (843, 416)
 # 右侧归一 ≈(608,506) 是「下载」，绝不能点。勾选框（30天内不再提醒）原生≈(390,457) → (312,366)。
 C_PACK_CANCEL = (480, 506)
 C_PACK_MUTE = (312, 366)
-POPUP_CHECK_INTERVAL = 20.0  # 每隔这么多秒按新帧抽检一次系统/游戏弹窗
-# 说明：弹窗 OCR 是全 ROI（700×240）识别，手机上单次 3–17 s（实测 12:47 那轮 `[MOBILE_EXIT_DIALOG 17.265s]`），
-# 6 秒一次等于把每次截图拖成十几秒，任务自己会被 `mobile page made no progress` 判死。
-# 弹窗本身不会一两秒就消失，20 秒抽检足够，且不会拖慢主循环。
+POPUP_CHECK_INTERVAL = 45.0  # 每隔这么多秒按新帧抽检一次系统/游戏弹窗
+# 说明：弹窗 OCR 是全 ROI（700×240）识别，手机上单次 5–36 s（实测真机战斗中曾出现 36.6 s），
+# 频率太高会把正常战斗等待拖到 `mobile page made no progress` 超时；
+# 仅在画面真正长时间无点击进展时低频抽检，既能关掉卡住页面的资源包弹窗，又不干扰正常战斗。
 
 TARGET_PACKAGE = bridge.target_package()
 
@@ -255,12 +255,17 @@ class Device:
                             self._native_frame_id = native_id
                             self._image_frame_id += 1
                         self._last_capture = time.monotonic()
-                        # 只在「画面已经不动 ≥15 s」时才做弹窗 OCR：
-                        # 手机端单次 OCR 3–27 s（实测 `[MOBILE_EXIT_DIALOG 27.032s]`），
-                        # 无条件抽检会把主循环拖死（SoulsTidy 曾因此被判 no progress）。
+                        # 只在「画面已经长时间无点击进展」时才做弹窗 OCR：
+                        # 战斗等待期间（BATTLE_STATUS_S / PAUSE）正常 30~60s 无点击，放宽到 60s 再抽检，
+                        # 避免真机单次 OCR 6~36s 把正常战斗拖死。
                         idle_for = time.monotonic() - self._stuck_since
-                        if (idle_for >= 15
-                                and time.monotonic() - self._last_popup_check >= POPUP_CHECK_INTERVAL):
+                        in_battle_wait = any(
+                            k in str(self._detect_record) for k in ('BATTLE_STATUS_S', 'PAUSE')
+                        )
+                        idle_threshold = 60.0 if in_battle_wait else 30.0
+                        check_interval = 60.0 if in_battle_wait else POPUP_CHECK_INTERVAL
+                        if (idle_for >= idle_threshold
+                                and time.monotonic() - self._last_popup_check >= check_interval):
                             self._last_popup_check = time.monotonic()
                             # 弹窗会顶掉所有页面：式神音频扩展包下载框曾让 SoulsTidy 卡 11 分钟
                             # （evidence/probe-shop2/soulstidy-stuck.jpg）。命中就关掉。

@@ -47,6 +47,10 @@ class GameUi(ChessBattleNavigationMixin, BaseTask, GameUiAssets):
         roi=(280, 350, 720, 180), area=(280, 350, 720, 180),
         mode="Full", method="Default", keyword="取消", name="android_exit_cancel",
     )
+    O_IN_GAME_EXIT_CONFIRM = RuleOcr(
+        roi=(280, 350, 720, 180), area=(280, 350, 720, 180),
+        mode="Full", method="Default", keyword="确认", name="in_game_exit_confirm",
+    )
 
     O_ANDROID_GRAPHICS_CONTINUE = RuleOcr(
         roi=(532, 459, 211, 38), area=(532, 459, 211, 38),
@@ -737,6 +741,22 @@ class GameUi(ChessBattleNavigationMixin, BaseTask, GameUiAssets):
             return False
         return self.click(self.C_ANDROID_GRAPHICS_CONTINUE, interval=1.5)
 
+    def _is_in_game_exit_prompt(self) -> bool:
+        """区分「确认退出探索吗？」等游戏内退出确认框与「退出游戏」SDK 确认框。"""
+        image = getattr(self.device, 'image', None)
+        if image is None or not hasattr(image, 'shape'):
+            return False
+        try:
+            lines = self.O_ANDROID_EXIT_PROMPT.detect_and_ocr(image, logDisplay=False)
+        except Exception:  # noqa: BLE001
+            return False
+        text = "".join("".join(str(getattr(line, 'ocr_text', '')).split()) for line in (lines or ()))
+        if not text or "游戏" in text:
+            return False
+        return any(token in text for token in (
+            "退出探索", "退出探", "退出副本", "退出战斗", "退出挑战", "退出结界", "退出当前",
+        ))
+
     def close_unknown_pages(self, skip_first_screenshot: bool = True) -> bool:
         """尝试关闭未知页面。
 
@@ -755,7 +775,16 @@ class GameUi(ChessBattleNavigationMixin, BaseTask, GameUiAssets):
             raise GameNotRunningError('Client dropped back to login')
 
         # Android Back at the courtyard opens the SDK exit dialog. Guard it before generic closers.
+        # 但游戏内二级界面（如探索章节）按返回会弹出「确认退出探索吗？」，必须点「确认」才能退回，
+        # 绝不能误判成退出游戏而狂点「取消」陷入死循环。
         if not self.device.is_desktop and self.ocr_appear(self.O_ANDROID_EXIT_PROMPT):
+            if self._is_in_game_exit_prompt():
+                if not self.ocr_appear_click(self.O_IN_GAME_EXIT_CONFIRM, interval=1.5):
+                    return False
+                logger.info("Confirmed in-game exit prompt to leave sub-scene")
+                self._record_unknown_close_event("in_game_exit_confirm")
+                time.sleep(0.8)
+                return True
             if not self.ocr_appear_click(self.O_ANDROID_EXIT_CANCEL, interval=1.5):
                 return False
             logger.info("Cancelled Android game exit confirmation")

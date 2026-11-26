@@ -436,6 +436,22 @@ class SchedulerTests(unittest.TestCase):
         self.assertTrue(done.wait(1.5))
         self.assertEqual(attempts, ['Restart', 'Restart'])
 
+    def test_shizuku_mid_task_disconnect_is_classified_as_shizuku_error(self):
+        import oas_mobile
+
+        oas_mobile.bridge.shizuku_available = lambda: False
+        self.assertTrue(
+            self.scheduler._is_shizuku_error(
+                'RuntimeError: background capture stopped; refusing main-screen fallback'
+            )
+        )
+        oas_mobile.bridge.shizuku_available = lambda: True
+        self.assertFalse(
+            self.scheduler._is_shizuku_error(
+                'RuntimeError: background capture stopped; refusing main-screen fallback'
+            )
+        )
+
     def test_scheduler_start_clears_stale_overheat_and_respects_manual_resume(self):
         from tempfile import TemporaryDirectory
         import oas_mobile

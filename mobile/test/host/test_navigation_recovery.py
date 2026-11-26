@@ -38,19 +38,23 @@ from tasks.WantedQuests.script_task import ScriptTask as WantedQuests
 class NavigationProbe:
     O_ANDROID_EXIT_PROMPT = navigator.GameUi.O_ANDROID_EXIT_PROMPT
     O_ANDROID_EXIT_CANCEL = navigator.GameUi.O_ANDROID_EXIT_CANCEL
+    O_IN_GAME_EXIT_CONFIRM = navigator.GameUi.O_IN_GAME_EXIT_CONFIRM
     O_ANDROID_GRAPHICS_CONTINUE = navigator.GameUi.O_ANDROID_GRAPHICS_CONTINUE
     O_ANDROID_GRAPHICS_NOTICE = navigator.GameUi.O_ANDROID_GRAPHICS_NOTICE
     C_ANDROID_GRAPHICS_CONTINUE = navigator.GameUi.C_ANDROID_GRAPHICS_CONTINUE
     _close_android_graphics_notice = navigator.GameUi._close_android_graphics_notice
+    _is_in_game_exit_prompt = navigator.GameUi._is_in_game_exit_prompt
     DEFAULT_UNKNOWN_CLOSERS = ()
 
-    def __init__(self, title, cancel, desktop=False, continue_lines=(), notice_lines=()):
+    def __init__(self, title, cancel, desktop=False, continue_lines=(), notice_lines=(), prompt_lines=None):
         self.navigator = SimpleNamespace(unknown_close_history=[], local_unknown_closers=[])
-        self.device = SimpleNamespace(is_desktop=desktop, app_lost_login=lambda: False, adb_shell=self.back, image=object())
+        img = np.zeros((10, 10, 3), dtype=np.uint8) if prompt_lines is not None else object()
+        self.device = SimpleNamespace(is_desktop=desktop, app_lost_login=lambda: False, adb_shell=self.back, image=img)
         self.title = title
         self.cancel = cancel
         self.continue_lines = continue_lines
         self.notice_lines = notice_lines
+        self.prompt_lines = prompt_lines
         self.events = []
         self.clicks = []
 
@@ -76,8 +80,10 @@ class NavigationProbe:
         return True
 
     def close_unknown(self):
+        prompt_ret = [SimpleNamespace(ocr_text=line) for line in (self.prompt_lines or ())]
         with (
             patch.object(navigator.time, "sleep"),
+            patch.object(self.O_ANDROID_EXIT_PROMPT, "detect_and_ocr", return_value=prompt_ret),
             patch.object(self.O_ANDROID_GRAPHICS_CONTINUE, "detect_and_ocr",
                          return_value=[SimpleNamespace(ocr_text=line) for line in self.continue_lines]),
             patch.object(self.O_ANDROID_GRAPHICS_NOTICE, "detect_and_ocr",
@@ -521,6 +527,16 @@ class WantedQuestsInvitationTests(unittest.TestCase):
 class NavigationRecoveryTests(unittest.TestCase):
     def test_android_exit_confirmation_uses_only_cancel(self):
         ui = NavigationProbe(title=True, cancel=True)
+        self.assertTrue(ui.close_unknown())
+        self.assertEqual(ui.events, ["android_exit_prompt", "android_exit_cancel", "android_exit_cancel"])
+
+    def test_in_game_explore_exit_prompt_clicks_confirm_instead_of_cancel(self):
+        ui = NavigationProbe(title=True, cancel=True, prompt_lines=("取消", "确认退出探索吗?", "确认"))
+        self.assertTrue(ui.close_unknown())
+        self.assertEqual(ui.events, ["android_exit_prompt", "in_game_exit_confirm", "in_game_exit_confirm"])
+
+    def test_android_game_exit_prompt_still_clicks_cancel(self):
+        ui = NavigationProbe(title=True, cancel=True, prompt_lines=("提示", "确定要退出游戏吗？", "取消", "确认"))
         self.assertTrue(ui.close_unknown())
         self.assertEqual(ui.events, ["android_exit_prompt", "android_exit_cancel", "android_exit_cancel"])
 

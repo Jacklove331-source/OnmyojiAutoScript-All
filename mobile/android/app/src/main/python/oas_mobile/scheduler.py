@@ -56,7 +56,11 @@ def _is_shizuku_error(error_text: str) -> bool:
         'shizuku 服务不可用',
     )):
         return True
-    if 'background display start failed' in text and not _shizuku_is_ready():
+    if any(token in text for token in (
+        'background display start failed',
+        'background capture stopped',
+        'binder disconnected',
+    )) and not _shizuku_is_ready():
         return True
     return False
 
