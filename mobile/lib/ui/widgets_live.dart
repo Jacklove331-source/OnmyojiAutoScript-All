@@ -14,7 +14,7 @@ class LiveFrame extends StatefulWidget {
       this.onFrame,
       this.interactive = false,
       this.allowSwipe = false,
-      this.showStatusOverlay = true});
+      this.showStatusOverlay = false});
   final Duration interval;
   final OasApi? api;
   final ValueChanged<MobileMonitorFrame>? onFrame;
@@ -265,10 +265,8 @@ class LiveFrameState extends State<LiveFrame> with WidgetsBindingObserver {
                   fit: BoxFit.contain,
                   gaplessPlayback: true,
                   filterQuality: FilterQuality.low,
-                  errorBuilder: (_, __, ___) => const Center(
-                      child: Text('图像解码失败',
-                          style: TextStyle(color: Colors.white70))))
-            else
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink())
+            else if (widget.showStatusOverlay)
               const Center(
                   child: Padding(
                       padding: EdgeInsets.all(24),

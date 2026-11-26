@@ -17,9 +17,7 @@ class _MonitorPageState extends State<MonitorPage> {
   final GlobalKey<LiveFrameState> _live = GlobalKey<LiveFrameState>();
   final List<MobileMonitorFrame> _recent = <MobileMonitorFrame>[];
   DateTime? _lastThumbnail;
-  bool _busy = false;
   bool _paused = false;
-  String? _error;
 
   void _received(MobileMonitorFrame frame) {
     final DateTime now = DateTime.now();
@@ -30,48 +28,6 @@ class _MonitorPageState extends State<MonitorPage> {
       _recent.insert(0, frame);
       if (_recent.length > 5) _recent.removeLast();
     });
-  }
-
-  Future<void> _connect() async {
-    if (_busy) return;
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-    try {
-      final bool ok = await OasApi.i.startBackground();
-      if (!mounted) return;
-      if (!ok) setState(() => _error = '后台画面尚未建立，请检查 Shizuku 授权和游戏安装。');
-      _live.currentState?.refresh();
-    } catch (error) {
-      if (mounted) setState(() => _error = '连接失败：$error');
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  Future<void> _bringToForeground() async {
-    if (_busy) return;
-    setState(() => _busy = true);
-    try {
-      final bool ok = await OasApi.i.bringGameToForeground();
-      if (!mounted) return;
-      OasToast.show(context, ok ? '已把游戏切回主屏，点「启动游戏画面」可放回后台' : '当前没有在后台运行的游戏');
-    } catch (error) {
-      if (mounted) OasToast.show(context, '切换失败：$error');
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  Future<void> _capture() async {
-    final MobileMonitorFrame? frame = await OasApi.i.monitorFrame();
-    if (!mounted) return;
-    if (frame == null) {
-      OasToast.show(context, '当前没有可用画面');
-      return;
-    }
-    await _preview(frame, canSave: true);
   }
 
   Future<void> _save(MobileMonitorFrame frame) async {
@@ -130,18 +86,7 @@ class _MonitorPageState extends State<MonitorPage> {
         context: context,
         barrierColor: Colors.black,
         useSafeArea: false,
-        builder: (BuildContext dialog) => _TakeoverScreen(
-              onBringToForeground: () async {
-                final bool ok = await OasApi.i.bringGameToForeground();
-                if (dialog.mounted) {
-                  Navigator.of(dialog).pop();
-                }
-                if (mounted) {
-                  OasToast.show(context,
-                      ok ? '已把游戏切回主屏，点「启动游戏画面」可放回后台' : '当前没有在后台运行的游戏');
-                }
-              },
-            ));
+        builder: (BuildContext dialog) => const _TakeoverScreen());
     if (mounted) _live.currentState?.setPaused(_paused);
   }
 
@@ -172,15 +117,12 @@ class _MonitorPageState extends State<MonitorPage> {
                 child: AspectRatio(
                     aspectRatio: 16 / 9,
                     child: LiveFrame(
-                        key: _live, onFrame: _received, interactive: true))),
+                        key: _live,
+                        onFrame: _received,
+                        interactive: true,
+                        showStatusOverlay: false))),
             const SizedBox(height: 10),
             Row(children: <Widget>[
-              Expanded(
-                  child: OasSoftButton(
-                      label: _busy ? '连接中…' : '启动游戏画面',
-                      color: p.vermilion,
-                      onTap: _busy ? () {} : _connect)),
-              const SizedBox(width: 8),
               Expanded(
                   child: OasSoftButton(
                       label: _paused ? '继续画面' : '暂停画面',
@@ -192,30 +134,13 @@ class _MonitorPageState extends State<MonitorPage> {
               const SizedBox(width: 8),
               Expanded(
                   child: OasSoftButton(
-                      label: '全屏接管', color: p.purple, onTap: _fullscreen)),
-            ]),
-            if (_error != null)
-              Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: Text(_error!,
-                      style: TextStyle(color: p.vermilion, fontSize: 12))),
-            const SizedBox(height: 12),
-            Row(children: <Widget>[
-              Expanded(
-                  child: OasSoftButton(
-                      label: '截一帧', color: p.gold, onTap: _capture)),
-              const SizedBox(width: 8),
-              Expanded(
-                  child: OasSoftButton(
                       label: '刷新画面',
                       color: p.jade,
                       onTap: () => _live.currentState?.refresh())),
               const SizedBox(width: 8),
               Expanded(
                   child: OasSoftButton(
-                      label: '切回主屏',
-                      color: p.inkSoft,
-                      onTap: _busy ? () {} : _bringToForeground)),
+                      label: '全屏接管', color: p.purple, onTap: _fullscreen)),
             ]),
             const SizedBox(height: 14),
             const OasMonitorLogPanel(),
@@ -317,8 +242,7 @@ class _AiStatusCardState extends State<_AiStatusCard> {
 
 /// 全屏手动接管页：支持直接点击与滑动虚拟屏、发送虚拟屏返回键、以及一键暂停/恢复脚本防止抢手。
 class _TakeoverScreen extends StatefulWidget {
-  const _TakeoverScreen({required this.onBringToForeground});
-  final Future<void> Function() onBringToForeground;
+  const _TakeoverScreen();
 
   @override
   State<_TakeoverScreen> createState() => _TakeoverScreenState();
@@ -399,6 +323,7 @@ class _TakeoverScreenState extends State<_TakeoverScreen> {
               interval: const Duration(milliseconds: 140),
               interactive: true,
               allowSwipe: true,
+              showStatusOverlay: false,
             ),
           ),
           Positioned(
@@ -418,8 +343,6 @@ class _TakeoverScreenState extends State<_TakeoverScreen> {
                 ),
                 const SizedBox(width: 8),
                 _chip(Icons.arrow_back, '虚拟屏返回', _sendBack),
-                const SizedBox(width: 8),
-                _chip(Icons.open_in_new, '切回主屏', widget.onBringToForeground),
                 const SizedBox(width: 8),
                 _chip(Icons.close, '退出接管', () => Navigator.of(context).pop(),
                     color: const Color(0xfffca5a5)),

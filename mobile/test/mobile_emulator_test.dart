@@ -132,7 +132,8 @@ void main() {
       if (calls == 1) return image(png, frame: 1);
       return pending.future;
     });
-    await tester.pumpWidget(MaterialApp(home: LiveFrame(key: key, api: api)));
+    await tester.pumpWidget(MaterialApp(
+        home: LiveFrame(key: key, api: api, showStatusOverlay: true)));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 30));
     await tester.pump(const Duration(milliseconds: 250));
@@ -151,10 +152,21 @@ void main() {
       (WidgetTester tester) async {
     final OasApi api = client((_, __) async =>
         image(png, at: DateTime.now().subtract(const Duration(seconds: 20))));
-    await tester.pumpWidget(MaterialApp(home: LiveFrame(api: api)));
+    await tester.pumpWidget(
+        MaterialApp(home: LiveFrame(api: api, showStatusOverlay: true)));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 30));
     expect(find.textContaining('等待新帧'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('default LiveFrame hides all text overlays on the video surface',
+      (WidgetTester tester) async {
+    final OasApi api = client((_, __) async => image(png));
+    await tester.pumpWidget(MaterialApp(home: LiveFrame(api: api)));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 30));
+    expect(find.byType(Text), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
 

@@ -1,12 +1,12 @@
 {
-  "version": "2026.11.26.102441",
+  "version": "2026.11.26.103013",
   "source": "mobile",
-  "note": "fix courtyard 3-slot OCR, exact stamina typo match, and live OTA module reload",
-  "updated_at": "2026-11-26T10:24:41",
+  "note": "auto-expand collapsed courtyard scroll bar for 6/6 asset OCR",
+  "updated_at": "2026-11-26T10:30:13",
   "file": "datapack/oas-patch.zip",
-  "size_bytes": 26371474,
+  "size_bytes": 26372049,
   "file_count": 3544,
-  "sha256": "7adbed33e1f0e9bb6a91f5feb586833ac6b3f1a35aef40756be7bd2df4856cef",
+  "sha256": "03d698b0b5c63b11db64fba667ccc217401e5f79a5e1eb0f3d8325cbe2f7dff9",
   "apk": {
     "version_name": "0.3.4",
     "build_number": 79,

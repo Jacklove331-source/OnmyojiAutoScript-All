@@ -23,6 +23,11 @@ class TestAssetMonitor(unittest.TestCase):
         self.assertEqual(asset_monitor.parse_cn_number("132+"), (132, True))
         self.assertEqual(asset_monitor.parse_cn_number("20,475"), (20475, True))
         self.assertEqual(asset_monitor.parse_cn_number("2.0万"), (20000, False))
+        # 干净槽位过滤：接受标准数字，拒绝卷轴收起时的跑马灯中文公告
+        self.assertEqual(asset_monitor._parse_clean_slot_number("3053万"), (30530000, False))
+        self.assertEqual(asset_monitor._parse_clean_slot_number("540 +"), (540, True))
+        self.assertEqual(asset_monitor._parse_clean_slot_number("2.2万"), (22000, False))
+        self.assertEqual(asset_monitor._parse_clean_slot_number("籺大人1"), (None, False))
 
     def test_extract_courtyard_stamina_and_shop_anchor(self):
         courtyard_rows = [

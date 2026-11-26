@@ -36,6 +36,7 @@ _OCR_ENGINE: Any = None
 _OCR_INIT_LOCK = threading.Lock()
 
 _NUM_RE = re.compile(r"([+-]?\d+(?:\.\d+)?)\s*(亿|万)?")
+_CLEAN_SLOT_RE = re.compile(r"^[\s\+\-\(\)\[\]\|·\.]*(\d+(?:\.\d+)?)\s*(亿|万)?[\s\+]*$")
 _STAMINA_RE = re.compile(r"[已己巳]?拥有[:：\s]*(\d[\d,]*)")
 
 
@@ -739,6 +740,45 @@ def _ensure_virtual_display(bridge_mod: Any, display: int = -1) -> int:
     return disp
 
 
+def _parse_clean_slot_number(text: str) -> tuple[Optional[int], bool]:
+    """仅接受纯净的数字槽位文本（避免卷轴收起时把公告跑马灯里的文字误当成资产数字）。"""
+    raw = str(text or "").strip().replace("＋", "+").replace("，", ",").replace(",", "")
+    if not raw:
+        return None, False
+    # 含除「万/亿」之外的中文字符时，通常是全服公告或提示文字，直接拒绝
+    for ch in raw:
+        if "\u4e00" <= ch <= "\u9fff" and ch not in ("万", "亿"):
+            return None, False
+    if _CLEAN_SLOT_RE.match(raw) is None:
+        return None, False
+    return parse_cn_number(raw)
+
+
+def _read_courtyard_slots(rgb, fsize: tuple[int, int]) -> dict[str, dict[str, Any]]:
+    """裁剪庭院顶栏三个纯文字槽位并 3x 放大识别金币/勾玉/体力。"""
+    slot_rois = (
+        ("coin", (522, 10, 104, 44)),
+        ("jade", (710, 10, 90, 44)),
+        ("ap", (888, 10, 98, 44)),
+    )
+    out: dict[str, dict[str, Any]] = {}
+    for key, roi in slot_rois:
+        slot_rows = _ocr_rows_1280(rgb, fsize, roi_1280=roi, scale=3)
+        slot_text = "".join(
+            str(r.get("text") or "")
+            for r in sorted(slot_rows, key=lambda r: float(r.get("x", 0)))
+        )
+        val, exact = _parse_clean_slot_number(slot_text)
+        if val is not None:
+            out[key] = {
+                "value": val,
+                "precision": "exact" if exact else "approx",
+                "source": "courtyard.topbar",
+                "text": slot_text.strip(),
+            }
+    return out
+
+
 def _try_return_to_courtyard(bridge_mod: Any, disp: int, rgb, fsize: tuple[int, int], rows: list[dict], max_taps: int = 4):
     """只读方式尝试安全退回庭院（遇到退出确认框自动点取消）。"""
     for _ in range(max_taps):
@@ -839,35 +879,32 @@ def refresh_assets(
             return {"ok": False, "error": "当前不在庭院，跳过资产巡检", "snapshot": snap}
 
         _set_phase("正在识别庭院顶栏资产...")
-        readings: dict[str, dict[str, Any]] = {}
-        # 优先按庭院顶栏三个固定纯文字槽位 3x 放大裁剪识别，避开图标与加号，大幅提高准确率
-        slot_rois = (
-            ("coin", (522, 10, 104, 44)),
-            ("jade", (710, 10, 90, 44)),
-            ("ap", (888, 10, 98, 44)),
-        )
-        for key, roi in slot_rois:
-            slot_rows = _ocr_rows_1280(rgb, fsize, roi_1280=roi, scale=3)
-            slot_text = "".join(str(r.get("text") or "") for r in sorted(slot_rows, key=lambda r: float(r.get("x", 0))))
-            val, exact = parse_cn_number(slot_text)
-            if val is not None:
-                readings[key] = {
-                    "value": val,
-                    "precision": "exact" if exact else "approx",
-                    "source": "courtyard.topbar",
-                    "text": slot_text.strip(),
-                }
-        # 若个别槽位未识出，回退到全图顶栏识别结果补齐
+        readings: dict[str, dict[str, Any]] = _read_courtyard_slots(rgb, fsize)
+        # 阴阳师刚进入庭院时右下角卷轴默认收起，顶栏金币/勾玉/体力与底部商店均被隐藏；
+        # 若顶栏未识别到至少 2 项干净数值，自动点右下角卷轴 (1205, 650) 展开后再识别。
+        if len(readings) < 2:
+            _set_phase("正在展开庭院卷轴栏...")
+            _tap_1280(bridge, disp, 1205, 650, fsize)
+            time.sleep(1.0)
+            rgb_exp, fsize_exp = _capture_rgb(bridge, disp, retries=3, interval=0.5)
+            if rgb_exp is not None:
+                rgb, fsize = rgb_exp, fsize_exp
+                rows = _ocr_rows_1280(rgb, fsize)
+                readings = _read_courtyard_slots(rgb, fsize)
+
+        # 若个别槽位未识出，回退到全图顶栏识别结果补齐（同样过滤跑马灯汉字）
         top = extract_top_values(rows)
         if len(top) >= 3:
             for idx, key in enumerate(("coin", "jade", "ap")):
                 if key not in readings:
-                    readings[key] = {
-                        "value": top[idx]["value"],
-                        "precision": "exact" if top[idx].get("exact") else "approx",
-                        "source": "courtyard.topbar",
-                        "text": top[idx].get("text", ""),
-                    }
+                    cval, cexact = _parse_clean_slot_number(str(top[idx].get("text") or ""))
+                    if cval is not None:
+                        readings[key] = {
+                            "value": cval,
+                            "precision": "exact" if cexact else "approx",
+                            "source": "courtyard.topbar",
+                            "text": top[idx].get("text", ""),
+                        }
         courtyard_jade: Optional[int] = _coerce_int_or_none((readings.get("jade") or {}).get("value"))
 
         # Step 2: 点击体力饭团图标 (862, 30) 读取气泡里的精确体力值（绝不碰右侧加号）
