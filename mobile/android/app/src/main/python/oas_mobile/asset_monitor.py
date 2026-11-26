@@ -36,7 +36,7 @@ _OCR_ENGINE: Any = None
 _OCR_INIT_LOCK = threading.Lock()
 
 _NUM_RE = re.compile(r"([+-]?\d+(?:\.\d+)?)\s*(亿|万)?")
-_STAMINA_RE = re.compile(r"已拥有[:：\s]*(\d[\d,]*)")
+_STAMINA_RE = re.compile(r"[已己巳]?拥有[:：\s]*(\d[\d,]*)")
 
 
 # ---------------------------------------------------------------------------
@@ -325,7 +325,7 @@ def extract_stamina_exact(rows: list[dict]) -> Optional[int]:
                 return int(match.group(1).replace(",", ""))
             except (TypeError, ValueError):
                 pass
-        if "已拥有" in text and anchor is None:
+        if ("已拥有" in text or "己拥有" in text or "拥有" in text) and anchor is None:
             anchor = row
 
     if anchor is None:
@@ -840,42 +840,46 @@ def refresh_assets(
 
         _set_phase("正在识别庭院顶栏资产...")
         readings: dict[str, dict[str, Any]] = {}
+        # 优先按庭院顶栏三个固定纯文字槽位 3x 放大裁剪识别，避开图标与加号，大幅提高准确率
+        slot_rois = (
+            ("coin", (522, 10, 104, 44)),
+            ("jade", (710, 10, 90, 44)),
+            ("ap", (888, 10, 98, 44)),
+        )
+        for key, roi in slot_rois:
+            slot_rows = _ocr_rows_1280(rgb, fsize, roi_1280=roi, scale=3)
+            slot_text = "".join(str(r.get("text") or "") for r in sorted(slot_rows, key=lambda r: float(r.get("x", 0))))
+            val, exact = parse_cn_number(slot_text)
+            if val is not None:
+                readings[key] = {
+                    "value": val,
+                    "precision": "exact" if exact else "approx",
+                    "source": "courtyard.topbar",
+                    "text": slot_text.strip(),
+                }
+        # 若个别槽位未识出，回退到全图顶栏识别结果补齐
         top = extract_top_values(rows)
-        courtyard_jade: Optional[int] = None
         if len(top) >= 3:
-            readings["coin"] = {
-                "value": top[0]["value"],
-                "precision": "exact" if top[0].get("exact") else "approx",
-                "source": "courtyard.topbar",
-                "text": top[0].get("text", ""),
-            }
-            courtyard_jade = _coerce_int_or_none(top[1]["value"])
-            readings["jade"] = {
-                "value": top[1]["value"],
-                "precision": "exact" if top[1].get("exact") else "approx",
-                "source": "courtyard.topbar",
-                "text": top[1].get("text", ""),
-            }
-            readings["ap"] = {
-                "value": top[2]["value"],
-                "precision": "exact" if top[2].get("exact") else "approx",
-                "source": "courtyard.topbar",
-                "text": top[2].get("text", ""),
-            }
+            for idx, key in enumerate(("coin", "jade", "ap")):
+                if key not in readings:
+                    readings[key] = {
+                        "value": top[idx]["value"],
+                        "precision": "exact" if top[idx].get("exact") else "approx",
+                        "source": "courtyard.topbar",
+                        "text": top[idx].get("text", ""),
+                    }
+        courtyard_jade: Optional[int] = _coerce_int_or_none((readings.get("jade") or {}).get("value"))
 
-        # Step 2: 点击体力图标读取精确体力值（优先按识别到的顶栏第 3 项中心点击）
+        # Step 2: 点击体力饭团图标 (862, 30) 读取气泡里的精确体力值（绝不碰右侧加号）
         _set_phase("正在读取精确体力...")
-        stamina_xy = (950, 30)
-        if len(top) >= 3:
-            stamina_xy = (
-                int(top[2]["x"] + top[2].get("w", 40) / 2),
-                int(top[2]["y"] + top[2].get("h", 20) / 2),
-            )
-        _tap_1280(bridge, disp, stamina_xy[0], stamina_xy[1], fsize)
+        _tap_1280(bridge, disp, 862, 30, fsize)
         time.sleep(0.9)
         rgb2, fsize2 = _capture_rgb(bridge, disp, retries=3, interval=0.4)
         if rgb2 is not None:
-            exact_ap = extract_stamina_exact(_ocr_rows_1280(rgb2, fsize2))
+            tip_rows = _ocr_rows_1280(rgb2, fsize2, roi_1280=(620, 110, 420, 200), scale=2)
+            exact_ap = extract_stamina_exact(tip_rows)
+            if exact_ap is None:
+                exact_ap = extract_stamina_exact(_ocr_rows_1280(rgb2, fsize2))
             if exact_ap is not None:
                 readings["ap"] = {
                     "value": exact_ap,
@@ -883,12 +887,13 @@ def refresh_assets(
                     "source": "tooltip.stamina",
                     "text": str(exact_ap),
                 }
-        _tap_1280(bridge, disp, 1200, 620, fsize)
+        # 点庭院左侧空白关闭体力说明气泡
+        _tap_1280(bridge, disp, 220, 360, fsize)
         time.sleep(0.6)
 
         # Step 3: 只读进入商店识别皮肤券/神秘符咒/魂玉/勾玉（3x 放大 + 勾玉锚点校验），随后安全退回庭院
         _set_phase("正在识别商店顶栏资产...")
-        shop_xy = (715, 655)
+        shop_xy = (700, 645)
         for r in rows:
             if "商店" in str(r.get("text") or ""):
                 shop_xy = (int(r["x"] + r["w"] / 2), int(r["y"] + r["h"] / 2))

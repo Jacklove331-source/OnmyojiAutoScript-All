@@ -37,6 +37,9 @@ class TestAssetMonitor(unittest.TestCase):
 
         stamina_rows = [{"text": "已拥有: 20475", "x": 500, "y": 200, "w": 120, "h": 25}]
         self.assertEqual(asset_monitor.extract_stamina_exact(stamina_rows), 20475)
+        # 实机 ML Kit/PPOCR 常见把「已」误识成「己」
+        stamina_rows_typo = [{"text": "己拥有:21575", "x": 700, "y": 170, "w": 120, "h": 25}]
+        self.assertEqual(asset_monitor.extract_stamina_exact(stamina_rows_typo), 21575)
 
         shop_ok = [
             {"text": "820", "x": 674, "y": 20, "w": 40, "h": 20},
@@ -252,6 +255,19 @@ class TestOtaUpdater(unittest.TestCase):
         self.assertNotIn("PRIVATE-TOKEN", called[0][1])
         self.assertNotIn("Authorization", called[0][1])
         self.assertEqual(called[1][0], direct_url)
+
+    def test_purge_task_modules_clears_parent_package_attr_for_asset_monitor(self):
+        # 清理 oas_mobile.asset_monitor 时必须同步删除 oas_mobile 上的属性缓存
+        import oas_mobile
+        import oas_mobile.asset_monitor  # noqa: F401
+
+        self.assertTrue(hasattr(oas_mobile, "asset_monitor"))
+        ota_updater._purge_task_modules()
+        self.assertNotIn("oas_mobile.asset_monitor", sys.modules)
+        self.assertFalse(hasattr(oas_mobile, "asset_monitor"))
+        # 恢复导入，避免影响后续用例
+        from oas_mobile import asset_monitor as _restored  # noqa: F401
+        self.assertIsNotNone(_restored)
 
 
 class TestDeviceGuard(unittest.TestCase):

@@ -1,12 +1,12 @@
 {
-  "version": "2026.11.26.101513",
+  "version": "2026.11.26.102441",
   "source": "mobile",
-  "note": "fix asset monitor auto-start virtual display and courtyard login",
-  "updated_at": "2026-11-26T10:15:13",
+  "note": "fix courtyard 3-slot OCR, exact stamina typo match, and live OTA module reload",
+  "updated_at": "2026-11-26T10:24:41",
   "file": "datapack/oas-patch.zip",
-  "size_bytes": 26370995,
+  "size_bytes": 26371474,
   "file_count": 3544,
-  "sha256": "7d7e780f66a91681dca9b740503c2ffd0cb12488b73ace5cbf54a29243e1ad78",
+  "sha256": "7adbed33e1f0e9bb6a91f5feb586833ac6b3f1a35aef40756be7bd2df4856cef",
   "apk": {
     "version_name": "0.3.4",
     "build_number": 79,
