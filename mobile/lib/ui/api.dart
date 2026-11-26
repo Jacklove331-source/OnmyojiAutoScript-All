@@ -148,7 +148,7 @@ class OasApi {
     }
   }
 
-  /// GitCode 私库数据包热更新状态（不回显 token 明文）。
+  /// 在线数据包热更新状态（不回显 token 明文）。
   Future<Map<String, dynamic>> otaStatus() async {
     try {
       return await _getJson('/ota/status');

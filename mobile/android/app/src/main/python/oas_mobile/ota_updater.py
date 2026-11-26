@@ -1,7 +1,7 @@
 """oas_mobile.ota_updater — OAS Mobile 数据包 OTA 更新器（纯 Python 3.10 标准库）。
 
 特性：
-- GitCode 私有仓库（API v5 raw / raw 直链）双通道下载，token 永不进入日志或返回值。
+- 支持 GitHub / GitCode 公开仓库免令牌直连及私有仓库令牌认证，token 永不进入日志或返回值。
 - 覆盖层（overlay）热加载：``<workspace>/ota_overlay`` 置于 ``sys.path[0]``。
 - 原子式切换：``ota_overlay`` <-> ``ota_overlay_prev``，支持一键回滚。
 - 严格 ZIP 校验（SHA256 + zip-slip 防护 + 顶层目录白名单）。
@@ -426,19 +426,32 @@ def _download_bytes(cfg: dict, file_path: str, timeout: int = 30) -> bytes:
         raise OTAFetchError(_mask_token("；".join(errors) or "下载失败", token))
 
     if _is_gitcode_base(base_url):
-        api_url = "%s/api/v5/repos/%s/%s/raw/%s?ref=%s" % (
-            base_url,
-            owner,
-            name,
-            quoted_path,
-            quoted_branch,
-        )
-        try:
-            return _http_get(api_url, headers, timeout)
-        except OTAFetchError as exc:
-            errors.append(str(exc))
-            if not exc.allow_fallback:
-                raise OTAFetchError(_mask_token("；".join(errors), token)) from None
+        gc_urls = [
+            "https://api.gitcode.com/api/v5/repos/%s/%s/raw/%s?ref=%s" % (
+                owner,
+                name,
+                quoted_path,
+                quoted_branch,
+            ),
+            "%s/api/v5/repos/%s/%s/raw/%s?ref=%s" % (
+                base_url,
+                owner,
+                name,
+                quoted_path,
+                quoted_branch,
+            ),
+        ]
+        seen = set()
+        for api_url in gc_urls:
+            if api_url in seen:
+                continue
+            seen.add(api_url)
+            try:
+                return _http_get(api_url, headers, timeout)
+            except OTAFetchError as exc:
+                errors.append(str(exc))
+                if not exc.allow_fallback:
+                    raise OTAFetchError(_mask_token("；".join(errors), token)) from None
 
     raw_url = "%s/%s/%s/raw/%s/%s" % (base_url, owner, name, quoted_branch, quoted_path)
     try:
@@ -1017,7 +1030,7 @@ def rollback_update(workspace: str) -> dict:
 
 
 # --------------------------------------------------------------------------- #
-# 私库 Release APK 自更新
+# Release APK 自更新
 # --------------------------------------------------------------------------- #
 
 

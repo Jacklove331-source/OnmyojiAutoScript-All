@@ -1,21 +1,21 @@
 {
-    "version":  "2026.11.26.093322",
+    "version":  "2026.11.26.094711",
     "source":  "github-public",
-    "note":  "默认对接 GitHub 公开库在线更新（支持数据包热更与 Release APK 自更新）",
-    "updated_at":  "2026-11-26T09:33:22",
-    "file":  "https://github.com/Jacklove331-source/OnmyojiAutoScript-All/releases/download/v0.3.4-b78/oas-patch.zip",
-    "size_bytes":  26477767,
+    "note":  "在线更新升级：去掉私库字样，支持一键切换 GitHub / GitCode 双公开源",
+    "updated_at":  "2026-11-26T09:47:11",
+    "file":  "https://github.com/Jacklove331-source/OnmyojiAutoScript-All/releases/download/v0.3.4-b79/oas-patch.zip",
+    "size_bytes":  26477825,
     "file_count":  3571,
-    "sha256":  "09962a39997f9553602dc2a6ee552c5a46a9d63e842a2bedd093d02e46983a5d",
+    "sha256":  "a1e7e44c4a94cf5801bd52482ae86a0ccbe5891f1964019d71c079c5823c2fde",
     "apk":  {
                 "version_name":  "0.3.4",
-                "build_number":  78,
-                "tag":  "v0.3.4-b78",
-                "file_name":  "OASX-Mobile-0.3.4-b78-arm64-v8a.apk",
-                "size_bytes":  154294102,
-                "sha256":  "0cffb98fabce33563324deae79f7e33508053558733e38d0238f527683f3817d",
-                "download_url":  "https://github.com/Jacklove331-source/OnmyojiAutoScript-All/releases/download/v0.3.4-b78/OASX-Mobile-0.3.4-b78-arm64-v8a.apk",
-                "note":  "支持免令牌直接从 GitHub 公开库检查热更新与下载新版 APK",
-                "updated_at":  "2026-11-26T09:33:22"
+                "build_number":  79,
+                "tag":  "v0.3.4-b79",
+                "file_name":  "OASX-Mobile-0.3.4-b79-arm64-v8a.apk",
+                "size_bytes":  154294098,
+                "sha256":  "d0cd773f4248bdbab1019862c8108affb40efc292253c082b840d4d25c3a754b",
+                "download_url":  "https://github.com/Jacklove331-source/OnmyojiAutoScript-All/releases/download/v0.3.4-b79/OASX-Mobile-0.3.4-b79-arm64-v8a.apk",
+                "note":  "去掉私库字样，卡片直接可选 GitHub / GitCode（国内）双公开源更新",
+                "updated_at":  "2026-11-26T09:47:11"
             }
 }

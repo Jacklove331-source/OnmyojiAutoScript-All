@@ -5,6 +5,37 @@ import '../api.dart';
 import '../system_ui.dart';
 import '../widgets.dart';
 
+/// 预置公开更新源（支持在 GitHub 与 GitCode 国内源之间一键切换）。
+class _OtaPreset {
+  const _OtaPreset({
+    required this.key,
+    required this.label,
+    required this.baseUrl,
+    required this.repo,
+    this.branch = 'main',
+  });
+
+  final String key;
+  final String label;
+  final String baseUrl;
+  final String repo;
+  final String branch;
+}
+
+const _OtaPreset _kGitHubPreset = _OtaPreset(
+  key: 'github',
+  label: 'GitHub',
+  baseUrl: 'https://github.com',
+  repo: 'Jacklove331-source/OnmyojiAutoScript-All',
+);
+
+const _OtaPreset _kGitCodePreset = _OtaPreset(
+  key: 'gitcode',
+  label: 'GitCode（国内）',
+  baseUrl: 'https://gitcode.com',
+  repo: 'wrsndm1/oas-private',
+);
+
 class OasOtaCard extends StatefulWidget {
   const OasOtaCard({super.key, this.api});
 
@@ -21,6 +52,7 @@ class _OasOtaCardState extends State<OasOtaCard> {
   Map<String, dynamic> _apkDownload = {};
   bool _loading = true;
   bool _applying = false;
+  bool _switching = false;
   String? _error;
   Timer? _apkPoll;
 
@@ -45,7 +77,8 @@ class _OasOtaCardState extends State<OasOtaCard> {
 
   String _str(String key, [String fallback = '']) {
     final value = _status[key];
-    return value?.toString() ?? fallback;
+    final s = value?.toString() ?? '';
+    return s.isEmpty ? fallback : s;
   }
 
   Map<String, dynamic> get _remoteManifest {
@@ -54,10 +87,18 @@ class _OasOtaCardState extends State<OasOtaCard> {
     return {};
   }
 
-  String get _repo => _str('repo', 'Jacklove331-source/OnmyojiAutoScript-All');
+  String get _repo => _str('repo', _kGitHubPreset.repo);
   String get _branch => _str('branch', 'main');
-  String get _baseUrl => _str('base_url', 'https://github.com');
+  String get _baseUrl => _str('base_url', _kGitHubPreset.baseUrl);
   bool get _isGitHub => _baseUrl.toLowerCase().contains('github.com');
+  bool get _isGitCode => _baseUrl.toLowerCase().contains('gitcode.com');
+
+  String get _sourceBadgeText {
+    if (_isGitHub) return 'GitHub 公开源';
+    if (_isGitCode) return 'GitCode 国内源';
+    return _tokenConfigured ? '已配令牌' : '自定义源';
+  }
+
   String get _installedVersion {
     if (_status.containsKey('installedVersion')) {
       return _str('installedVersion', '');
@@ -193,6 +234,31 @@ class _OasOtaCardState extends State<OasOtaCard> {
     }
   }
 
+  Future<void> _switchPreset(_OtaPreset preset) async {
+    if (_switching) return;
+    setState(() => _switching = true);
+    try {
+      final res = await _api.otaConfigSave(<String, dynamic>{
+        'base_url': preset.baseUrl,
+        'repo': preset.repo,
+        'branch': preset.branch,
+      });
+      if (!mounted) return;
+      if (res['ok'] == false) {
+        _toast('切换失败：${res['error'] ?? '未知错误'}');
+      } else {
+        _toast('已切换更新方式为 ${preset.label}');
+      }
+      await _refresh();
+    } catch (e) {
+      _toast('切换失败：$e');
+    } finally {
+      if (mounted) {
+        setState(() => _switching = false);
+      }
+    }
+  }
+
   Future<void> _editConfig() async {
     final baseUrlController = TextEditingController(text: _baseUrl);
     final repoController = TextEditingController(text: _repo);
@@ -206,7 +272,31 @@ class _OasOtaCardState extends State<OasOtaCard> {
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  ActionChip(
+                    label: const Text('填入 GitHub'),
+                    onPressed: () {
+                      baseUrlController.text = _kGitHubPreset.baseUrl;
+                      repoController.text = _kGitHubPreset.repo;
+                      branchController.text = _kGitHubPreset.branch;
+                    },
+                  ),
+                  ActionChip(
+                    label: const Text('填入 GitCode（国内）'),
+                    onPressed: () {
+                      baseUrlController.text = _kGitCodePreset.baseUrl;
+                      repoController.text = _kGitCodePreset.repo;
+                      branchController.text = _kGitCodePreset.branch;
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
               TextField(
                 controller: baseUrlController,
                 decoration: const InputDecoration(
@@ -285,7 +375,7 @@ class _OasOtaCardState extends State<OasOtaCard> {
       if (res['ok'] == false) {
         _toast('保存失败：${res['error'] ?? '未知错误'}');
       } else {
-        _toast('配置已保存');
+        _toast('更新源已保存');
       }
       await _refresh();
     } catch (e) {
@@ -398,44 +488,72 @@ class _OasOtaCardState extends State<OasOtaCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '在线更新（数据包热更 / APK 自更新）',
-            style: Theme.of(context)
-                .textTheme
-                .titleMedium
-                ?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
                 child: Text(
-                  subtitleText,
-                  style: Theme.of(context).textTheme.bodySmall,
+                  '在线更新（数据包热更 / APK 自更新）',
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold),
                 ),
               ),
-              const SizedBox(width: 8),
               Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: (_tokenConfigured || _isGitHub)
-                      ? p.jade.withOpacity(0.12)
-                      : p.inkDim.withOpacity(0.12),
+                  color: p.jade.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  _tokenConfigured
-                      ? '令牌已配置'
-                      : (_isGitHub ? 'GitHub 公开源' : '未配令牌'),
+                  _sourceBadgeText,
                   style: TextStyle(
-                    color: (_tokenConfigured || _isGitHub) ? p.jade : p.inkDim,
-                    fontSize: 12,
+                    color: p.jade,
+                    fontSize: 11.5,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 10),
+          // 更新方式二选一：GitHub 或 GitCode（国内）
+          Row(
+            children: [
+              Text(
+                '更新方式：',
+                style: TextStyle(fontSize: 12.5, color: p.inkDim),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: [
+                    ChoiceChip(
+                      label: Text(_kGitHubPreset.label),
+                      selected: _isGitHub,
+                      onSelected: (_loading || _switching || _isGitHub)
+                          ? null
+                          : (_) => _switchPreset(_kGitHubPreset),
+                    ),
+                    ChoiceChip(
+                      label: Text(_kGitCodePreset.label),
+                      selected: _isGitCode,
+                      onSelected: (_loading || _switching || _isGitCode)
+                          ? null
+                          : (_) => _switchPreset(_kGitCodePreset),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            subtitleText,
+            style: Theme.of(context).textTheme.bodySmall,
           ),
           if (hasUpdate) ...[
             const SizedBox(height: 8),
@@ -525,7 +643,7 @@ class _OasOtaCardState extends State<OasOtaCard> {
             children: [
               OutlinedButton(
                 onPressed: _loading ? null : _editConfig,
-                child: const Text('更新源设置'),
+                child: const Text('自定义设置'),
               ),
               OutlinedButton(
                 onPressed: _loading ? null : _check,

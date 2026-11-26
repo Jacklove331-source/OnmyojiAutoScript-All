@@ -3,7 +3,7 @@
 > 一个把 **电脑端整合版（`desktop/`）** 与 **手机免 Root 后台独立运行版（`mobile/`）** 收录在同一仓库里的个人长期自用与维护工程。  
 > 核心目标很简单：**电脑上能稳定托管，手机上也能不连电脑、不 Root、不抢主屏，在后台独立把日常与周常跑完。**
 
-- **手机端成品 APK 下载**：前往 [Releases · v0.3.4-b78](https://github.com/Jacklove331-source/OnmyojiAutoScript-All/releases/tag/v0.3.4-b78)（含 `arm64-v8a` 安装包、`oas-patch.zip` 热更包与 `SHA-256` 校验文件，安装后默认直连本仓库在线更新）
+- **手机端成品 APK 下载**：前往 [Releases · v0.3.4-b79](https://github.com/Jacklove331-source/OnmyojiAutoScript-All/releases/tag/v0.3.4-b79)（含 `arm64-v8a` 安装包、`oas-patch.zip` 热更包与 `SHA-256` 校验文件；App 内支持一键切换 **GitHub / GitCode 国内公开源**，免令牌在线更新）
 - **开源协议**：[GNU General Public License v3.0](LICENSE)
 
 ---
@@ -52,7 +52,7 @@ flowchart LR
 - **首页纯任务队列视图**：直观呈现「运行中 / 待执行 / 等待中」排期顺序，支持任意任务一键置顶优先执行与一键展开全部队列。
 - **实时监控与手动接管**：内置监控页可实时预览后台虚拟屏画面与运行日志，随时暂停、点按介入或将游戏切回主屏。
 - **硬件与电源安全守护**：接入 Android 原生电池温度、电量百分比、充电与 Wi-Fi 状态监测，支持异常自动停机保护。
-- **内置 GitHub 在线更新（数据包热更 + APK 自更新）**：默认直接对接本公开库，免填令牌即可在 App 内「我的 → 在线更新」一键拉取最新 Python 脚本热更或下载新版 APK，同时支持在弹窗里切换自定义仓库或 GitCode 源。
+- **内置 GitHub / GitCode 双公开源在线更新**：在 App 内「我的 → 在线更新」可直接一键切换 **GitHub** 或 **GitCode（国内极速）** 更新方式，均无需填写令牌，支持 Python 脚本热更新与 Release APK 一键自更新。
 
 ### 2. 真机全流程实测与稳定性修复
 以下问题均在真机连续调度实测中发现、定位修复并补充了主机侧单元测试：
