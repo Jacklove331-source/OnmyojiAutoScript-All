@@ -1,0 +1,47 @@
+[
+  {
+    "itemName": "nw",
+    "imageName": "netherworld_nw.png",
+    "roiFront": "1060,602,100,100",
+    "roiBack": "1060,602,100,100",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "点击阴界之门"
+  },
+  {
+    "itemName": "nw_challage",
+    "imageName": "netherworld_nw_challage.png",
+    "roiFront": "306,590,171,63",
+    "roiBack": "306,590,171,63",
+    "method": "Template matching",
+    "threshold": 0.7,
+    "description": "点击挑战"
+  },
+  {
+    "itemName": "nw_done",
+    "imageName": "netherworld_nw_done.png",
+    "roiFront": "308,600,156,41",
+    "roiBack": "308,600,156,41",
+    "method": "Template matching",
+    "threshold": 0.9,
+    "description": "今日已挑战"
+  },
+  {
+    "itemName": "nw_current_title",
+    "imageName": "netherworld_nw_current_title.png",
+    "roiFront": "477,8,350,55",
+    "roiBack": "460,0,380,78",
+    "method": "Template matching",
+    "threshold": 0.88,
+    "description": "当前阴界之门地图标题，用于页面导航及完成页共同验证"
+  },
+  {
+    "itemName": "nw_done_map",
+    "imageName": "netherworld_nw_done_map.png",
+    "roiFront": "1140,651,116,43",
+    "roiBack": "1120,635,150,70",
+    "method": "Template matching",
+    "threshold": 0.88,
+    "description": "地图右下角已挑战；必须同时确认阴界标题且为前景画面"
+  }
+]

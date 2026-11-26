@@ -1,0 +1,63 @@
+{
+  "task": "Restart",
+  "name": "loading_data_text",
+  "versions": [
+    {
+      "version": 1,
+      "file": "Restart/loading_data_text/v001.png",
+      "created": 1794298998.087835,
+      "created_text": "2026-11-10 16:23:18",
+      "source": "ai_auto",
+      "resolution": [
+        1280,
+        720
+      ],
+      "game_version": "",
+      "region": {
+        "x": 0.42,
+        "y": 0.92,
+        "w": 0.17,
+        "h": 0.06
+      },
+      "validation": {
+        "passed": true,
+        "reason": "ok",
+        "positive_min": 1.0,
+        "positive_avg": 1.0,
+        "negative_max": 0.2167,
+        "false_positive_rate": 0.0,
+        "samples": 1,
+        "detail": {
+          "positive_scores": [
+            1.0
+          ],
+          "negative_scores": [
+            0.2167,
+            0.0006,
+            0.1273,
+            -0.1835,
+            -0.0671,
+            0.0745,
+            0.0171,
+            0.1903,
+            -0.184,
+            0.0165,
+            -0.1378,
+            0.1692,
+            0.0214,
+            0.1123,
+            -0.0594,
+            -0.1855,
+            -0.0295,
+            0.0012,
+            -0.091,
+            -0.033
+          ],
+          "negatives_skipped_same_page": 0
+        }
+      },
+      "note": "底部“数据加载中.”文字区，可用于识别加载页"
+    }
+  ],
+  "active_version": 1
+}

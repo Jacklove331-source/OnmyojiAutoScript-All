@@ -1,0 +1,63 @@
+{
+  "task": "AreaBoss",
+  "name": "area_boss_ready_button",
+  "versions": [
+    {
+      "version": 1,
+      "file": "AreaBoss/area_boss_ready_button/v001.png",
+      "created": 1794233566.2459378,
+      "created_text": "2026-11-09 22:12:46",
+      "source": "ai_auto",
+      "resolution": [
+        1280,
+        720
+      ],
+      "game_version": "",
+      "region": {
+        "x": 0.855,
+        "y": 0.72,
+        "w": 0.12,
+        "h": 0.135
+      },
+      "validation": {
+        "passed": true,
+        "reason": "ok",
+        "positive_min": 1.0,
+        "positive_avg": 1.0,
+        "negative_max": 0.3886,
+        "false_positive_rate": 0.0,
+        "samples": 1,
+        "detail": {
+          "positive_scores": [
+            1.0
+          ],
+          "negative_scores": [
+            0.1502,
+            0.0121,
+            0.3886,
+            0.0229,
+            -0.1274,
+            -0.2827,
+            0.1007,
+            0.1548,
+            0.0466,
+            -0.3005,
+            -0.2027,
+            0.1361,
+            -0.0607,
+            -0.1301,
+            0.3495,
+            -0.1086,
+            0.0164,
+            0.1549,
+            0.1677,
+            -0.144
+          ],
+          "negatives_skipped_same_page": 0
+        }
+      },
+      "note": "地域鬼王准备界面右下圆形“准备”按钮，可用于判断准备页并点击开局"
+    }
+  ],
+  "active_version": 1
+}

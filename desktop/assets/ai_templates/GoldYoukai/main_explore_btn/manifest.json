@@ -1,0 +1,63 @@
+{
+  "task": "GoldYoukai",
+  "name": "main_explore_btn",
+  "versions": [
+    {
+      "version": 1,
+      "file": "GoldYoukai/main_explore_btn/v001.png",
+      "created": 1793978643.7161517,
+      "created_text": "2026-11-06 23:24:03",
+      "source": "ai_auto",
+      "resolution": [
+        1280,
+        720
+      ],
+      "game_version": "",
+      "region": {
+        "x": 0.435,
+        "y": 0.075,
+        "w": 0.115,
+        "h": 0.14
+      },
+      "validation": {
+        "passed": true,
+        "reason": "ok",
+        "positive_min": 1.0,
+        "positive_avg": 1.0,
+        "negative_max": 0.4369,
+        "false_positive_rate": 0.0,
+        "samples": 1,
+        "detail": {
+          "positive_scores": [
+            1.0
+          ],
+          "negative_scores": [
+            0.2232,
+            -0.0925,
+            0.2774,
+            -0.2679,
+            -0.4013,
+            -0.0413,
+            -0.1565,
+            0.1108,
+            0.2078,
+            -0.0476,
+            0.258,
+            0.069,
+            0.1146,
+            -0.1645,
+            0.1594,
+            -0.1688,
+            0.0164,
+            -0.009,
+            -0.3139,
+            0.0351
+          ],
+          "negatives_skipped_same_page": 0
+        }
+      },
+      "note": "庭院左下主界面的探索灯笼按钮，可用于从聊天遮挡态回到探索地图"
+    }
+  ],
+  "active_version": 1
+}

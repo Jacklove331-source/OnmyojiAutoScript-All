@@ -1,0 +1,536 @@
+# This Python file uses the following encoding: utf-8
+# @author handman123
+# github https://github.com/runhey
+"""跨进程实例看守器。
+
+通过共享 JSON 状态文件协调多个进程的实例执行顺序，确保同一时间
+只有一个实例操作模拟器。持有执行权（token）的实例可执行任务，
+其他实例排队等待。
+"""
+import json
+import threading
+from pathlib import Path
+from datetime import datetime
+
+from filelock import FileLock
+from module.logger import logger
+
+
+class _QueueState:
+    """共享状态文件的持久化层。
+
+    负责 JSON 文件的原子读写和持有者心跳过期判断。
+    文件锁（FileLock）保证跨进程写入安全。
+
+    文件格式:
+        {
+            "current": "oas1",               # 当前持有执行权的实例名
+            "timestamp": "2026-07-08 ...",   # 持有者心跳时间戳
+            "queue": ["oas2", "oas3"]        # 等待队列
+        }
+    """
+
+    STATE_FILE = Path.cwd() / "log" / ".queue_state.json"
+    STALE_TIMEOUT = 300  # 心跳超时 5 分钟，超过视为持有者崩溃
+
+    def __init__(self, config_name: str):
+        """Args:
+            config_name: 配置文件名称，如 'oas1'。
+        """
+        self.config_name = config_name
+        self._lock = FileLock(str(self.STATE_FILE) + ".lock", timeout=5)
+
+    def read(self) -> dict:
+        """读取状态文件。
+
+        调用方需持有 _lock。文件不存在或损坏时返回空状态。
+
+        Returns:
+            dict: 包含 current、timestamp、queue 的状态字典。
+        """
+        if not self.STATE_FILE.exists():
+            return {"current": None, "timestamp": None, "queue": [],
+                    "last_holder": None, "last_release": None}
+        try:
+            with open(self.STATE_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError):
+            logger.warning("[InstanceGuard] State file corrupted, resetting")
+            return {"current": None, "timestamp": None, "queue": [],
+                    "last_holder": None, "last_release": None}
+
+    def write(self, state: dict) -> None:
+        """写入状态文件。调用方需持有 _lock。"""
+        self.STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with open(self.STATE_FILE, "w", encoding="utf-8") as f:
+            json.dump(state, f, indent=2, ensure_ascii=False)
+
+    def is_stale(self, state: dict) -> bool:
+        """判断持有者心跳是否过期。
+
+        如果 timestamp 距现在超过 STALE_TIMEOUT 秒，认为持有者崩溃。
+
+        Args:
+            state: 从 read() 获取的状态字典。
+
+        Returns:
+            bool: True 表示心跳过期，可安全接管。
+        """
+        ts_str = state.get("timestamp")
+        if not ts_str:
+            return False
+        try:
+            ts = datetime.fromisoformat(ts_str)
+            elapsed = (datetime.now() - ts).total_seconds()
+            return elapsed > self.STALE_TIMEOUT
+        except (ValueError, TypeError):
+            return True
+
+    def __enter__(self):
+        self._lock.acquire()
+        return self.read()
+
+    def __exit__(self, *args):
+        self._lock.release()
+
+
+class _Heartbeat:
+    """心跳保活线程。
+
+    持有 token 期间定期更新 timestamp，防止被误判崩溃。
+    同时监控 token 是否被其他实例抢占（例如被管理员从状态文件强制接管），
+    检测到丢失时设置 token_lost 标志通知主线程。
+    """
+
+    INTERVAL = 180  # 心跳间隔 3 分钟，小于 STALE_TIMEOUT(5min) 留出缓冲
+
+    def __init__(self, config_name: str, state: _QueueState):
+        self._config_name = config_name
+        self._state = state
+        self._thread: threading.Thread = None
+        self._stop_event: threading.Event = None
+        self._token_lost = threading.Event()
+
+    @property
+    def token_lost(self) -> bool:
+        """token 是否被其他实例抢占。"""
+        return self._token_lost.is_set()
+
+    def start(self) -> None:
+        """启动心跳 daemon 线程。已运行则跳过。"""
+        if self._thread and self._thread.is_alive():
+            return
+        self._token_lost.clear()
+        self._stop_event = threading.Event()
+        self._thread = threading.Thread(target=self._loop, daemon=True)
+        self._thread.start()
+        logger.info(
+            f"[InstanceGuard] Heartbeat started for '{self._config_name}'")
+
+    def stop(self) -> None:
+        """停止心跳线程。"""
+        if self._stop_event:
+            self._stop_event.set()
+        self._thread = None
+        self._stop_event = None
+
+    def _loop(self) -> None:
+        """心跳循环。每 INTERVAL 秒刷新 timestamp。"""
+        while not self._stop_event.wait(timeout=self.INTERVAL):
+            try:
+                with self._state._lock:
+                    state = self._state.read()
+                    if state["current"] == self._config_name:
+                        state["timestamp"] = datetime.now().isoformat()
+                        self._state.write(state)
+                    elif self._config_name not in state.get("queue", []):
+                        # 不在 current 也不在 queue，说明被强制移除了
+                        logger.warning(
+                            f"[InstanceGuard] '{self._config_name}' lost token, "
+                            f"current holder: {state['current']}")
+                        self._token_lost.set()
+                        return
+            except Exception as e:
+                logger.error(f"[InstanceGuard] Heartbeat error: {e}")
+
+
+def should_close_while_waiting(*, stagger_on: bool, close_policy: str,
+                               emulator_down: bool, device_ready: bool,
+                               waited: float, close_after: float) -> bool:
+    """等待执行权时是否关掉模拟器省资源。
+
+    **错峰模式下永远不关**：错峰里「等对方跑完」是常态，关掉之后拿到令牌
+    必须先冷启动模拟器再 Restart 登录，而 Restart 结束又会把令牌让给对方，
+    于是形成「等待 → 关机 → 拿到 → 冷启动/重启 → 再等待 → 再关机」的死循环，
+    表现为任务一直轮不到执行（实测：oas1/oas3 错峰互踢）。
+    """
+    if stagger_on:
+        return False
+    if close_policy != 'close_game':
+        return False
+    if emulator_down or not device_ready:
+        return False
+    return waited >= close_after
+
+
+def should_release_before_idle_wait(*, stagger_on: bool, has_guard: bool,
+                                   task_due: bool) -> bool:
+    """错峰模式下，任务还没到点时应先把执行权让给同组实例。
+
+    错峰是「任务级互斥」：持有者如果一边等自己的下一个任务（可能几分钟后）
+    一边占着执行权，同组另一个实例就永远抢不到；它等满 90s 会关掉模拟器，
+    拿回令牌后又要 Restart 登录 —— 这就是「错峰循环卡住」的成因。
+    """
+    return bool(stagger_on and has_guard and not task_due)
+
+
+class StaggerPreempted(Exception):
+    """执行权被恢复类任务（Restart）抢占，当前任务需要暂停。"""
+
+
+_ACTIVE_GUARD = None
+
+
+def active_guard():
+    """返回当前进程最近创建的 InstanceGuard（没有则 None）。"""
+    return _ACTIVE_GUARD
+
+
+class InstanceGuard:
+    """跨进程实例看守器。
+
+    通过共享状态文件协调多个实例的执行顺序，确保同一时间只有一个实例
+    操作模拟器。集成心跳保活和崩溃检测。
+
+    用法:
+        guard = InstanceGuard(config_name)
+        if guard.try_acquire():
+            # 执行业务逻辑
+            guard.release()
+    """
+
+    def __init__(self, config_name: str, stagger_group: list[str] | None = None,
+                 gap_minutes: int = 0):
+        """Args:
+            config_name: 配置文件名称。
+            stagger_group: 错峰分组成员配置名，例如 ['oas1', 'oas3']。
+            gap_minutes: 上一个同组成员释放执行权后，至少间隔多少分钟才允许开始。
+        """
+        self.config_name = config_name
+        self._state = _QueueState(config_name)
+        self._heartbeat = _Heartbeat(config_name, self._state)
+        self._stagger_group = [name for name in (stagger_group or []) if name]
+        self._gap_seconds = max(0, int(gap_minutes)) * 60
+        # 是否正持有执行权；被抢占检测只在持有时生效
+        self._holding = False
+        self._preempt_cache_at = 0.0
+        self._preempt_cache_val = False
+        global _ACTIVE_GUARD
+        _ACTIVE_GUARD = self
+
+    def preempted(self) -> bool:
+        """是否在执行任务期间被别人抢走执行权（Restart 抢占）。
+
+        每 2 秒最多读一次状态文件，避免每个截图都做 IO。
+        """
+        if not self._holding:
+            return False
+        import time as _time
+        now = _time.monotonic()
+        if now - self._preempt_cache_at < 2.0:
+            return self._preempt_cache_val
+        self._preempt_cache_at = now
+        self._preempt_cache_val = False
+        try:
+            with open(self._state.STATE_FILE, 'r', encoding='utf-8') as f:
+                state = json.load(f)
+        except (OSError, ValueError):
+            return False
+        if state.get('current') != self.config_name:
+            logger.warning(
+                f"[Stagger] '{self.config_name}' lost token to "
+                f"'{state.get('current')}', pausing task")
+            self._preempt_cache_val = True
+        return self._preempt_cache_val
+
+    @property
+    def token_lost(self) -> bool:
+        """token 是否被其他实例抢占。"""
+        return self._heartbeat.token_lost
+
+    HANDOFF_GRACE = 120  # 释放后优先让同组另一个实例接手的窗口（秒）
+
+    def _handoff_blocked(self, state: dict) -> bool:
+        """释放后优先让同组的另一个实例接手。
+
+        上一个实例释放执行权时写入 next_holder，在 HANDOFF_GRACE 秒内只允许
+        next_holder 接手；防止刚释放的实例在几毫秒后自己又抢回去，导致另一个
+        实例永远轮不上。
+        """
+        next_holder = state.get("next_holder")
+        if not next_holder or next_holder == self.config_name:
+            return False
+        last_release = state.get("last_release")
+        if not last_release:
+            return False
+        try:
+            elapsed = (datetime.now() - datetime.fromisoformat(last_release)).total_seconds()
+        except (ValueError, TypeError):
+            return False
+        return elapsed < self.HANDOFF_GRACE
+
+    def _should_wait_gap(self, state: dict) -> bool:
+        """错峰判断：同组上一个实例刚释放执行权时，是否还没到最小间隔。
+
+        调用方需持有 _lock。没有错峰设置、上一个持有者是自己、或不在同组时，
+        都直接放行。
+        """
+        if not self._stagger_group or self._gap_seconds <= 0:
+            return False
+        last_holder = state.get("last_holder")
+        last_release = state.get("last_release")
+        if not last_holder or last_holder == self.config_name:
+            return False
+        if last_holder not in self._stagger_group:
+            return False
+        if not last_release:
+            return False
+        try:
+            released_at = datetime.fromisoformat(last_release)
+        except (ValueError, TypeError):
+            return False
+        waited = (datetime.now() - released_at).total_seconds()
+        if waited < self._gap_seconds:
+            remain = int(self._gap_seconds - waited)
+            logger.info(
+                f"[Stagger] '{last_holder}' released {int(waited)}s ago, "
+                f"'{self.config_name}' waits {remain}s more")
+            return True
+        return False
+
+    def _resume_not_reached(self, state: dict) -> bool:
+        """交接后的强制间隔是否还没到点。
+
+        上一个持有者把执行权交给等待队列里的同组实例时，会写入 resume_at，
+        在这之前任何人都不能抢占（包括心跳过期接管）。
+        """
+        resume_at = state.get("resume_at")
+        if not resume_at:
+            return False
+        try:
+            return datetime.now() < datetime.fromisoformat(resume_at)
+        except (ValueError, TypeError):
+            return False
+
+    # ==================== 执行权操作 ====================
+
+    def try_acquire(self, queue: bool = True, force: bool = False) -> bool:
+        """尝试获取执行权。
+
+        Args:
+            queue: True 表示抢不到时排进等待队列（普通任务）；
+                False 表示只尝试一次、不排队。
+            force: True 表示恢复类任务（Restart）优先抢占：
+                直接把执行权从当前持有者手里拿过来，并让被抢占者之后能重新排队。
+
+        四种情况:
+        1. 自己已是持有者 — 刷新 heartbeat，返回 True
+        2. 持有者心跳过期 — 强制接管，返回 True
+        3. 无人持有 — 自己成为持有者，启动心跳，返回 True
+        4. 他人持有 — force=True 则抢占；否则加入等待队列（queue=True）
+
+        Returns:
+            True: 已获得执行权。
+            False: 执行权被他人持有。
+        """
+        with self._state._lock:
+            state = self._state.read()
+
+            # 恢复类任务：直接抢占当前持有者
+            if force and state["current"] not in (None, self.config_name):
+                victim = state["current"]
+                if victim not in state["queue"]:
+                    state["queue"].insert(0, victim)
+                state["current"] = self.config_name
+                state["timestamp"] = datetime.now().isoformat()
+                state["next_holder"] = None
+                state["resume_at"] = None
+                state["preempted_by"] = self.config_name
+                self._state.write(state)
+                self._holding = True
+                self._preempt_cache_at = 0.0
+                self._heartbeat.start()
+                logger.warning(
+                    f"[Stagger] '{self.config_name}' preempted token from "
+                    f"'{victim}', it will pause and requeue")
+                return True
+
+            # 交接间隔未到：谁都不能开始
+            if self._resume_not_reached(state):
+                return False
+
+            # 刚释放的实例在优先窗口内不能抢，先把机会让给同组另一个实例
+            if self._handoff_blocked(state):
+                logger.info(
+                    f"[Stagger] handoff to '{state.get('next_holder')}', "
+                    f"'{self.config_name}' waits")
+                return False
+
+            # 自己已是持有者，刷新心跳
+            if state["current"] == self.config_name:
+                state["timestamp"] = datetime.now().isoformat()
+                state["resume_at"] = None
+                state["next_holder"] = None
+                self._state.write(state)
+                self._heartbeat.start()
+                self._holding = True
+                logger.info(f"[InstanceGuard] '{self.config_name}' already holds token")
+                return True
+
+            # 持有者崩溃，强制接管
+            if state["current"] and self._state.is_stale(state):
+                logger.warning(
+                    f"[InstanceGuard] Holder '{state['current']}' "
+                    f"heartbeat stale, taking over")
+                state["current"] = None
+                state["timestamp"] = None
+
+            # 无人持有，先检查错峰间隔，未到点则继续等待
+            if state["current"] is None and self._should_wait_gap(state):
+                return False
+
+            # 无人持有，自己成为持有者
+            if state["current"] is None:
+                state["current"] = self.config_name
+                state["timestamp"] = datetime.now().isoformat()
+                state["next_holder"] = None
+                state["resume_at"] = None
+                if self.config_name in state["queue"]:
+                    state["queue"].remove(self.config_name)
+                self._state.write(state)
+                logger.info(
+                    f"[InstanceGuard] '{self.config_name}' acquired token")
+                self._heartbeat.start()
+                self._holding = True
+                return True
+
+            # 他人持有
+            if not queue:
+                # 豁免任务只尝试、不排队；如果之前排过队就撤掉
+                if self.config_name in state["queue"]:
+                    state["queue"].remove(self.config_name)
+                    self._state.write(state)
+                logger.info(
+                    f"[Stagger] '{self.config_name}' exempt from queue, "
+                    f"holder: '{state['current']}'")
+                return False
+            # 他人持有，加入等待队列
+            if self.config_name not in state["queue"]:
+                state["queue"].append(self.config_name)
+                self._state.write(state)
+                logger.info(
+                    f"[InstanceGuard] '{self.config_name}' waiting, "
+                    f"holder: '{state['current']}', "
+                    f"queue: {state['queue']}")
+            return False
+
+    def release(self) -> None:
+        """释放执行权。
+
+        - 等待队列非空时，把执行权交给队首实例，并写入 resume_at（错峰间隔），
+          保证它不会立刻开跑；
+        - 队列为空时清空 current，记录最后一次释放时间；
+        - 如果自己不是持有者，静默返回。
+        """
+        with self._state._lock:
+            state = self._state.read()
+            if state["current"] != self.config_name:
+                self._holding = False
+                return
+
+            self._holding = False
+            self._heartbeat.stop()
+            now = datetime.now()
+            state["last_holder"] = self.config_name
+            state["last_release"] = now.isoformat()
+            if state["queue"]:
+                next_holder = state["queue"].pop(0)
+                state["current"] = next_holder
+                state["timestamp"] = now.isoformat()
+                if self._gap_seconds > 0:
+                    resume_at = now.timestamp() + self._gap_seconds
+                    state["resume_at"] = datetime.fromtimestamp(resume_at).isoformat()
+                else:
+                    state["resume_at"] = None
+                state["next_holder"] = None
+                logger.info(
+                    f"[InstanceGuard] '{self.config_name}' released token "
+                    f"→ '{next_holder}' (stagger gap {self._gap_seconds // 60}min)")
+            else:
+                state["current"] = None
+                state["timestamp"] = None
+                state["resume_at"] = None
+                # 队列为空说明同组另一个实例当前没有在等执行权（没有到点任务），
+                # 不做交接，避免它根本没运行时把自己卡住 HANDOFF_GRACE 秒。
+                state["next_holder"] = None
+                logger.info(f"[InstanceGuard] '{self.config_name}' released token")
+            self._state.write(state)
+
+    def should_release(self, pending_task: list, waiting_task: list,
+                       idle_threshold_minutes: int = 10) -> bool:
+        """判断是否应该在进入空闲前释放执行权。
+
+        条件:
+        1. pending_task 为空（当前无待执行任务）
+        2. waiting_task 为空，或最早的任务距现在超过 idle_threshold_minutes 分钟
+
+        Args:
+            pending_task: 当前到期的任务列表。
+            waiting_task: 未来任务列表，按 next_run 升序。
+            idle_threshold_minutes: 空闲阈值（分钟）。
+
+        Returns:
+            True: 空闲时间足够长，应释放执行权。
+            False: 即将有任务，应继续持有。
+        """
+        if pending_task:
+            return False
+        if not waiting_task:
+            return True
+
+        next_task_time = waiting_task[0].next_run
+        idle_seconds = (next_task_time - datetime.now()).total_seconds()
+        return idle_seconds > idle_threshold_minutes * 60
+
+    def remove_from_queue(self) -> None:
+        """从排队系统中完全移除自己。
+
+        进程停止时调用，防止残留状态导致死锁。
+        如果自己是持有者，将执行权移交给下一个等待者。
+        """
+        with self._state._lock:
+            state = self._state.read()
+
+            if self.config_name in state["queue"]:
+                state["queue"].remove(self.config_name)
+                logger.info(
+                    f"[InstanceGuard] '{self.config_name}' removed from queue")
+
+            if state["current"] == self.config_name:
+                self._heartbeat.stop()
+                if state["queue"]:
+                    next_holder = state["queue"].pop(0)
+                    state["current"] = next_holder
+                    state["timestamp"] = datetime.now().isoformat()
+                    logger.info(
+                        f"[InstanceGuard] '{self.config_name}' removed, "
+                        f"token → '{next_holder}'")
+                else:
+                    state["current"] = None
+                    state["timestamp"] = None
+                state["last_holder"] = self.config_name
+                state["last_release"] = datetime.now().isoformat()
+                self._state.write(state)
+                return
+
+            self._state.write(state)

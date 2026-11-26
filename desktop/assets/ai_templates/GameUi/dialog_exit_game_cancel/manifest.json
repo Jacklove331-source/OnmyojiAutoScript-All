@@ -1,0 +1,63 @@
+{
+  "task": "GameUi",
+  "name": "dialog_exit_game_cancel",
+  "versions": [
+    {
+      "version": 1,
+      "file": "GameUi/dialog_exit_game_cancel/v001.png",
+      "created": 1793832793.3508403,
+      "created_text": "2026-11-05 06:53:13",
+      "source": "ai_auto",
+      "resolution": [
+        1280,
+        720
+      ],
+      "game_version": "",
+      "region": {
+        "x": 0.585,
+        "y": 0.615,
+        "w": 0.082,
+        "h": 0.06
+      },
+      "validation": {
+        "passed": true,
+        "reason": "ok",
+        "positive_min": 1.0,
+        "positive_avg": 1.0,
+        "negative_max": 0.6521,
+        "false_positive_rate": 0.0,
+        "samples": 1,
+        "detail": {
+          "positive_scores": [
+            1.0
+          ],
+          "negative_scores": [
+            0.0316,
+            -0.1516,
+            -0.3718,
+            0.2166,
+            -0.0367,
+            -0.1013,
+            0.033,
+            0.0418,
+            -0.2316,
+            -0.095,
+            -0.0783,
+            -0.2727,
+            0.3715,
+            -0.0632,
+            -0.0721,
+            0.0281,
+            0.0171,
+            0.1134,
+            0.1834,
+            -0.0171
+          ],
+          "negatives_skipped_same_page": 0
+        }
+      },
+      "note": "退出确认框的“取消”按钮，绿字文本区域"
+    }
+  ],
+  "active_version": 1
+}

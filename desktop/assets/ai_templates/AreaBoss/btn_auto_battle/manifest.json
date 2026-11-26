@@ -1,0 +1,63 @@
+{
+  "task": "AreaBoss",
+  "name": "btn_auto_battle",
+  "versions": [
+    {
+      "version": 1,
+      "file": "AreaBoss/btn_auto_battle/v001.png",
+      "created": 1793934153.2174423,
+      "created_text": "2026-11-06 11:02:33",
+      "source": "ai_auto",
+      "resolution": [
+        1280,
+        720
+      ],
+      "game_version": "",
+      "region": {
+        "x": 0.005,
+        "y": 0.835,
+        "w": 0.09,
+        "h": 0.11
+      },
+      "validation": {
+        "passed": true,
+        "reason": "ok",
+        "positive_min": 1.0,
+        "positive_avg": 1.0,
+        "negative_max": 0.3357,
+        "false_positive_rate": 0.0,
+        "samples": 1,
+        "detail": {
+          "positive_scores": [
+            1.0
+          ],
+          "negative_scores": [
+            -0.0511,
+            0.1152,
+            0.1288,
+            -0.1978,
+            -0.0093,
+            0.1384,
+            0.1174,
+            -0.026,
+            -0.0186,
+            0.0755,
+            0.3357,
+            0.0859,
+            -0.0675,
+            -0.0059,
+            0.1179,
+            0.0992,
+            0.0078,
+            -0.2878,
+            -0.2953,
+            0.008
+          ],
+          "negatives_skipped_same_page": 0
+        }
+      },
+      "note": "左下角圆形“自动”按钮，含粉色花瓣边框，用于切换自动战斗"
+    }
+  ],
+  "active_version": 1
+}

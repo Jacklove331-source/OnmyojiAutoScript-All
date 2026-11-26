@@ -1,0 +1,1969 @@
+[
+{
+"shikigami_id": "593",
+"name": "妖刀姬·绯夜猎刃",
+"rarity": "UR",
+"icon_asset_id": "pic_ss_ur_yaodaoji",
+"sort_order": 0
+},
+{
+"shikigami_id": "605",
+"name": "洛天依",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_luotianyi",
+"sort_order": 0
+},
+{
+"shikigami_id": "606",
+"name": "言和",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_yanhe",
+"sort_order": 0
+},
+{
+"shikigami_id": "607",
+"name": "百羽凤凰火",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_baiyufenghuanghuo",
+"sort_order": 0
+},
+{
+"shikigami_id": "608",
+"name": "石长姬",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_shichangji",
+"sort_order": 0
+},
+{
+"shikigami_id": "609",
+"name": "咲耶",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_xiaoye_00",
+"sort_order": 0
+},
+{
+"shikigami_id": "604",
+"name": "不相狐禅",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_buxianghuchan",
+"sort_order": 1
+},
+{
+"shikigami_id": "603",
+"name": "毗沙门天",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_pishamentian",
+"sort_order": 2
+},
+{
+"shikigami_id": "602",
+"name": "天火命铃彦姬",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_sp_lingyanji",
+"sort_order": 3
+},
+{
+"shikigami_id": "433",
+"name": "生剥鬼",
+"rarity": "N",
+"icon_asset_id": "pic_ss_shengbogui",
+"sort_order": 4
+},
+{
+"shikigami_id": "601",
+"name": "思金神",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_sijinshen",
+"sort_order": 5
+},
+{
+"shikigami_id": "600",
+"name": "市加美",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_shijiamei",
+"sort_order": 6
+},
+{
+"shikigami_id": "599",
+"name": "蚀月吸血姬",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_sp_xixueji",
+"sort_order": 7
+},
+{
+"shikigami_id": "598",
+"name": "灼华桃花妖",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_sp_taohuayao",
+"sort_order": 8
+},
+{
+"shikigami_id": "597",
+"name": "葛叶",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_geye",
+"sort_order": 9
+},
+{
+"shikigami_id": "596",
+"name": "神无月",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_shenwuyue",
+"sort_order": 10
+},
+{
+"shikigami_id": "595",
+"name": "梦山白藏主",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_sp_baizangzhu",
+"sort_order": 11
+},
+{
+"shikigami_id": "594",
+"name": "梦引蝴蝶精",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_sp_hudiejing",
+"sort_order": 12
+},
+{
+"shikigami_id": "592",
+"name": "平将门",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_pingjiangmen",
+"sort_order": 13
+},
+{
+"shikigami_id": "591",
+"name": "雪御前",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_xueyuqian",
+"sort_order": 14
+},
+{
+"shikigami_id": "590",
+"name": "妙主九命猫",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_sp_jiumingmao",
+"sort_order": 15
+},
+{
+"shikigami_id": "571",
+"name": "湍津姬",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_tuanjinji",
+"sort_order": 16
+},
+{
+"shikigami_id": "588",
+"name": "李小狼",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_lixiaolang",
+"sort_order": 17
+},
+{
+"shikigami_id": "587",
+"name": "木之本樱",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_muzhibenying",
+"sort_order": 18
+},
+{
+"shikigami_id": "586",
+"name": "云间不见岳",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_sp_bujianyue",
+"sort_order": 19
+},
+{
+"shikigami_id": "585",
+"name": "荒骷髅",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_ssr_huangkulou",
+"sort_order": 20
+},
+{
+"shikigami_id": "584",
+"name": "时曜泷夜叉姬",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_sp_longyechaji",
+"sort_order": 21
+},
+{
+"shikigami_id": "583",
+"name": "卑弥呼",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_beimihu",
+"sort_order": 22
+},
+{
+"shikigami_id": "582",
+"name": "巡音流歌",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_xunyinliuge",
+"sort_order": 23
+},
+{
+"shikigami_id": "581",
+"name": "歌留多",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_geliuduo",
+"sort_order": 24
+},
+{
+"shikigami_id": "579",
+"name": "瑶音紧那罗",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_sp_jinnaluo",
+"sort_order": 25
+},
+{
+"shikigami_id": "580",
+"name": "晴思日和坊",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_sp_rihefang",
+"sort_order": 26
+},
+{
+"shikigami_id": "576",
+"name": "夏目&猫老师",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_xiamu",
+"sort_order": 27
+},
+{
+"shikigami_id": "578",
+"name": "神酿星熊童子",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_sp_xingxiongtongzi",
+"sort_order": 28
+},
+{
+"shikigami_id": "577",
+"name": "鬼金羊",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_guijinyang",
+"sort_order": 29
+},
+{
+"shikigami_id": "575",
+"name": "封阳君",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_fengyangjun",
+"sort_order": 30
+},
+{
+"shikigami_id": "574",
+"name": "心友犬神",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_sp_quanshen",
+"sort_order": 31
+},
+{
+"shikigami_id": "573",
+"name": "龙珏",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_longjue",
+"sort_order": 32
+},
+{
+"shikigami_id": "572",
+"name": "遥念烟烟罗",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_sp_yanyanluo",
+"sort_order": 33
+},
+{
+"shikigami_id": "570",
+"name": "祸津神",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_huojinshen",
+"sort_order": 34
+},
+{
+"shikigami_id": "569",
+"name": "猫川",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_maochuan",
+"sort_order": 35
+},
+{
+"shikigami_id": "568",
+"name": "龙吟铃鹿御前",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_sp_lingluyuqian",
+"sort_order": 36
+},
+{
+"shikigami_id": "567",
+"name": "申屠子夜",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_shentuziye",
+"sort_order": 37
+},
+{
+"shikigami_id": "566",
+"name": "晨晖惠比寿",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_sp_huibishou",
+"sort_order": 38
+},
+{
+"shikigami_id": "564",
+"name": "镜音铃·连",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_jingyinlinglian",
+"sort_order": 39
+},
+{
+"shikigami_id": "563",
+"name": "初音未来",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_chuyinweilai",
+"sort_order": 40
+},
+{
+"shikigami_id": "565",
+"name": "福悦座敷童子",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_sp_zuofutongzi",
+"sort_order": 41
+},
+{
+"shikigami_id": "562",
+"name": "鲸汐千姬",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_sp_qianji",
+"sort_order": 42
+},
+{
+"shikigami_id": "561",
+"name": "泷",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_long",
+"sort_order": 43
+},
+{
+"shikigami_id": "559",
+"name": "本真三尾狐",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_sp_sanweihu",
+"sort_order": 44
+},
+{
+"shikigami_id": "558",
+"name": "盗人神",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_daorenshen",
+"sort_order": 45
+},
+{
+"shikigami_id": "557",
+"name": "伊邪那美",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_yixienamei",
+"sort_order": 46
+},
+{
+"shikigami_id": "556",
+"name": "天照",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_tianzhao",
+"sort_order": 47
+},
+{
+"shikigami_id": "555",
+"name": "渺念萤草",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_sp_yingcao",
+"sort_order": 48
+},
+{
+"shikigami_id": "553",
+"name": "闻人翊悬",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_wenrenyixuan",
+"sort_order": 49
+},
+{
+"shikigami_id": "554",
+"name": "纺愿缘结神",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_sp_yuanjieshen",
+"sort_order": 50
+},
+{
+"shikigami_id": "552",
+"name": "慧明灯",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_huimingdeng",
+"sort_order": 51
+},
+{
+"shikigami_id": "551",
+"name": "寻森小鹿男",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_spxiaolunan",
+"sort_order": 52
+},
+{
+"shikigami_id": "550",
+"name": "孔雀明王",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_kongquemingwang",
+"sort_order": 53
+},
+{
+"shikigami_id": "500",
+"name": "神乐&定春",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_shenle",
+"sort_order": 54
+},
+{
+"shikigami_id": "397",
+"name": "坂田银时",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_bantianyinshi",
+"sort_order": 55
+},
+{
+"shikigami_id": "399",
+"name": "言灵",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_yanling",
+"sort_order": 56
+},
+{
+"shikigami_id": "398",
+"name": "天逆每",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_tiannimei",
+"sort_order": 57
+},
+{
+"shikigami_id": "396",
+"name": "修罗鬼童丸",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_sp_guitongwan",
+"sort_order": 58
+},
+{
+"shikigami_id": "395",
+"name": "流光追月神",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_sp_zhuiyueshen",
+"sort_order": 59
+},
+{
+"shikigami_id": "394",
+"name": "月读",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_yueduming",
+"sort_order": 60
+},
+{
+"shikigami_id": "393",
+"name": "禅心云外镜",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_sp_yunwaijing",
+"sort_order": 61
+},
+{
+"shikigami_id": "392",
+"name": "季",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_ji",
+"sort_order": 62
+},
+{
+"shikigami_id": "391",
+"name": "寻香行",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_xunxiangxing",
+"sort_order": 63
+},
+{
+"shikigami_id": "390",
+"name": "神启荒",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_sp_huang",
+"sort_order": 64
+},
+{
+"shikigami_id": "389",
+"name": "须佐之男",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_xuzuozhinan",
+"sort_order": 65
+},
+{
+"shikigami_id": "387",
+"name": "嘴平伊之助",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_yizhizhu",
+"sort_order": 66
+},
+{
+"shikigami_id": "386",
+"name": "我妻善逸",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_woqishanyi",
+"sort_order": 67
+},
+{
+"shikigami_id": "388",
+"name": "心狩鬼女红叶",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_sp_guinvhongye",
+"sort_order": 68
+},
+{
+"shikigami_id": "385",
+"name": "大夜摩天阎魔",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_sp_yanmo",
+"sort_order": 69
+},
+{
+"shikigami_id": "384",
+"name": "粉婆婆",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_fenpopo",
+"sort_order": 70
+},
+{
+"shikigami_id": "383",
+"name": "神堕八岐大蛇",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_sp_baqidashe",
+"sort_order": 71
+},
+{
+"shikigami_id": "382",
+"name": "灵海蝶",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_linghaidie",
+"sort_order": 72
+},
+{
+"shikigami_id": "375",
+"name": "影鳄",
+"rarity": "R",
+"icon_asset_id": "pic_ss_yinge",
+"sort_order": 73
+},
+{
+"shikigami_id": "379",
+"name": "不见岳",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_bujianyue",
+"sort_order": 74
+},
+{
+"shikigami_id": "378",
+"name": "迦楼罗",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_jialouluo",
+"sort_order": 75
+},
+{
+"shikigami_id": "377",
+"name": "梦寻山兔",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_sp_shantu",
+"sort_order": 76
+},
+{
+"shikigami_id": "376",
+"name": "铃彦姬",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_lingyanji",
+"sort_order": 77
+},
+{
+"shikigami_id": "373",
+"name": "夜刀神",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_yedaoshen",
+"sort_order": 78
+},
+{
+"shikigami_id": "372",
+"name": "因幡辉夜姬",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_sp_huiyeji",
+"sort_order": 79
+},
+{
+"shikigami_id": "371",
+"name": "川猿",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_chuanyuan",
+"sort_order": 80
+},
+{
+"shikigami_id": "370",
+"name": "饭笥",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_fansi",
+"sort_order": 81
+},
+{
+"shikigami_id": "369",
+"name": "食灵",
+"rarity": "SSR",
+"icon_asset_id": "shiling",
+"sort_order": 82
+},
+{
+"shikigami_id": "368",
+"name": "饴细工",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_yixigong",
+"sort_order": 83
+},
+{
+"shikigami_id": "367",
+"name": "绘世花鸟卷",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_sp_huaniaojuan",
+"sort_order": 84
+},
+{
+"shikigami_id": "366",
+"name": "空相面灵气",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_sp_mianlingqi",
+"sort_order": 85
+},
+{
+"shikigami_id": "365",
+"name": "入内雀",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_runeique",
+"sort_order": 86
+},
+{
+"shikigami_id": "430",
+"name": "御馔津呱",
+"rarity": "N",
+"icon_asset_id": "pic_ss_yuzhuanjingua",
+"sort_order": 87
+},
+{
+"shikigami_id": "429",
+"name": "玉藻前呱",
+"rarity": "N",
+"icon_asset_id": "pic_ss_yuzaoqiangua",
+"sort_order": 88
+},
+{
+"shikigami_id": "428",
+"name": "雪童子呱",
+"rarity": "N",
+"icon_asset_id": "pic_ss_xuetongzigua",
+"sort_order": 89
+},
+{
+"shikigami_id": "364",
+"name": "阿修罗",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_axiuluo",
+"sort_order": 90
+},
+{
+"shikigami_id": "363",
+"name": "帝释天",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_dishitian",
+"sort_order": 91
+},
+{
+"shikigami_id": "362",
+"name": "蝉冰雪女",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_spxuenv",
+"sort_order": 92
+},
+{
+"shikigami_id": "361",
+"name": "垢尝",
+"rarity": "R",
+"icon_asset_id": "pic_ss_gouchang",
+"sort_order": 93
+},
+{
+"shikigami_id": "360",
+"name": "灶门祢豆子",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_midouzi",
+"sort_order": 94
+},
+{
+"shikigami_id": "359",
+"name": "灶门炭治郎",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_tanzhilang",
+"sort_order": 95
+},
+{
+"shikigami_id": "358",
+"name": "夜溟彼岸花",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_spbianhua_00",
+"sort_order": 96
+},
+{
+"shikigami_id": "357",
+"name": "初翎山风",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_spshanfeng",
+"sort_order": 97
+},
+{
+"shikigami_id": "356",
+"name": "千姬",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_qianji",
+"sort_order": 98
+},
+{
+"shikigami_id": "355",
+"name": "麓铭大岳丸",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_spdayuewan",
+"sort_order": 99
+},
+{
+"shikigami_id": "354",
+"name": "待宵姑获鸟",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_spguhuoniao_00",
+"sort_order": 100
+},
+{
+"shikigami_id": "353",
+"name": "紧那罗",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_jinnaluo",
+"sort_order": 101
+},
+{
+"shikigami_id": "352",
+"name": "缚骨清姬",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_spqingji_00",
+"sort_order": 102
+},
+{
+"shikigami_id": "351",
+"name": "铃鹿御前",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_lingluyuqian",
+"sort_order": 103
+},
+{
+"shikigami_id": "350",
+"name": "蝎女",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_xienv",
+"sort_order": 104
+},
+{
+"shikigami_id": "349",
+"name": "风狸",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_fengli",
+"sort_order": 105
+},
+{
+"shikigami_id": "348",
+"name": "浮世青行灯",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_spqingxingdeng_00",
+"sort_order": 106
+},
+{
+"shikigami_id": "347",
+"name": "缘结神",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_yuanjieshen",
+"sort_order": 107
+},
+{
+"shikigami_id": "346",
+"name": "聆海金鱼姬",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_spjinyuji_00",
+"sort_order": 108
+},
+{
+"shikigami_id": "345",
+"name": "鬼童丸",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_guitongwan",
+"sort_order": 109
+},
+{
+"shikigami_id": "344",
+"name": "云外镜",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_yunwaijing",
+"sort_order": 110
+},
+{
+"shikigami_id": "343",
+"name": "天剑韧心鬼切",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_spguiqie_00",
+"sort_order": 111
+},
+{
+"shikigami_id": "342",
+"name": "星熊童子",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_xingxiongtongzi",
+"sort_order": 112
+},
+{
+"shikigami_id": "341",
+"name": "鬼王酒吞童子",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_spjiutuntongzi_00",
+"sort_order": 113
+},
+{
+"shikigami_id": "340",
+"name": "纸舞",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_zhiwu",
+"sort_order": 114
+},
+{
+"shikigami_id": "339",
+"name": "烬天玉藻前",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_spyuzaoqian_00",
+"sort_order": 115
+},
+{
+"shikigami_id": "338",
+"name": "泷夜叉姬",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_longyechaji",
+"sort_order": 116
+},
+{
+"shikigami_id": "337",
+"name": "黑崎一护",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_heiqiyihu",
+"sort_order": 117
+},
+{
+"shikigami_id": "336",
+"name": "露琪亚",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_luqiya",
+"sort_order": 118
+},
+{
+"shikigami_id": "335",
+"name": "蟹姬",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_xieji",
+"sort_order": 119
+},
+{
+"shikigami_id": "334",
+"name": "骁浪荒川之主",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_sphuangchuan_00",
+"sort_order": 120
+},
+{
+"shikigami_id": "333",
+"name": "大岳丸",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_dayuewan",
+"sort_order": 121
+},
+{
+"shikigami_id": "332",
+"name": "久次良",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_jiuciliang",
+"sort_order": 122
+},
+{
+"shikigami_id": "331",
+"name": "御怨般若",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_spbore_00",
+"sort_order": 123
+},
+{
+"shikigami_id": "329",
+"name": "海忍",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_hairen",
+"sort_order": 124
+},
+{
+"shikigami_id": "330",
+"name": "不知火",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_buzhihuo",
+"sort_order": 125
+},
+{
+"shikigami_id": "328",
+"name": "赤影妖刀姬",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_spyaodaoji_00",
+"sort_order": 126
+},
+{
+"shikigami_id": "327",
+"name": "苍风一目连",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_spyimulian_00",
+"sort_order": 127
+},
+{
+"shikigami_id": "326",
+"name": "稻荷神御馔津",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_spyuzhuanjin_00",
+"sort_order": 128
+},
+{
+"shikigami_id": "324",
+"name": "化鲸",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_huajing",
+"sort_order": 129
+},
+{
+"shikigami_id": "325",
+"name": "八岐大蛇",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_dasheshen",
+"sort_order": 130
+},
+{
+"shikigami_id": "323",
+"name": "天井下",
+"rarity": "R",
+"icon_asset_id": "pic_ss_tianjinxia",
+"sort_order": 131
+},
+{
+"shikigami_id": "322",
+"name": "炼狱茨木童子",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_spcimutongzi_00",
+"sort_order": 132
+},
+{
+"shikigami_id": "321",
+"name": "入殓师",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_rulianshi",
+"sort_order": 133
+},
+{
+"shikigami_id": "320",
+"name": "一反木绵",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_yifanmumian",
+"sort_order": 134
+},
+{
+"shikigami_id": "318",
+"name": "於菊虫",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_yujuchong",
+"sort_order": 135
+},
+{
+"shikigami_id": "319",
+"name": "桔梗",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_jiegeng",
+"sort_order": 136
+},
+{
+"shikigami_id": "317",
+"name": "人面树",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_renmianshu",
+"sort_order": 137
+},
+{
+"shikigami_id": "316",
+"name": "白藏主",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_xiaobai",
+"sort_order": 138
+},
+{
+"shikigami_id": "315",
+"name": "少羽大天狗",
+"rarity": "SP",
+"icon_asset_id": "pic_ss_shaoyudatiangou_00",
+"sort_order": 139
+},
+{
+"shikigami_id": "312",
+"name": "鬼切",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_guiqie",
+"sort_order": 140
+},
+{
+"shikigami_id": "314",
+"name": "杀生丸",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_shashengwan",
+"sort_order": 141
+},
+{
+"shikigami_id": "313",
+"name": "犬夜叉",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_quanyecha",
+"sort_order": 142
+},
+{
+"shikigami_id": "427",
+"name": "彼岸花呱",
+"rarity": "N",
+"icon_asset_id": "pic_ss_bianhuagua",
+"sort_order": 143
+},
+{
+"shikigami_id": "426",
+"name": "荒呱",
+"rarity": "N",
+"icon_asset_id": "pic_ss_huanggua",
+"sort_order": 144
+},
+{
+"shikigami_id": "425",
+"name": "辉夜姬呱",
+"rarity": "N",
+"icon_asset_id": "pic_ss_huiyejigua",
+"sort_order": 145
+},
+{
+"shikigami_id": "424",
+"name": "花鸟卷呱",
+"rarity": "N",
+"icon_asset_id": "pic_ss_huaniaojuangua",
+"sort_order": 146
+},
+{
+"shikigami_id": "423",
+"name": "一目连呱",
+"rarity": "N",
+"icon_asset_id": "pic_ss_yimuliangua",
+"sort_order": 147
+},
+{
+"shikigami_id": "422",
+"name": "妖刀姬呱",
+"rarity": "N",
+"icon_asset_id": "pic_ss_yaodaojigua",
+"sort_order": 148
+},
+{
+"shikigami_id": "421",
+"name": "青行灯呱",
+"rarity": "N",
+"icon_asset_id": "pic_ss_qingxingdenggua",
+"sort_order": 149
+},
+{
+"shikigami_id": "420",
+"name": "茨木呱",
+"rarity": "N",
+"icon_asset_id": "pic_ss_cimugua",
+"sort_order": 150
+},
+{
+"shikigami_id": "419",
+"name": "小鹿男呱",
+"rarity": "N",
+"icon_asset_id": "pic_ss_xiaolunangua",
+"sort_order": 151
+},
+{
+"shikigami_id": "418",
+"name": "两面佛呱",
+"rarity": "N",
+"icon_asset_id": "pic_ss_liangmianfogua",
+"sort_order": 152
+},
+{
+"shikigami_id": "417",
+"name": "阎魔呱",
+"rarity": "N",
+"icon_asset_id": "pic_ss_yanmogua",
+"sort_order": 153
+},
+{
+"shikigami_id": "416",
+"name": "荒川呱",
+"rarity": "N",
+"icon_asset_id": "pic_ss_huangchuangua",
+"sort_order": 154
+},
+{
+"shikigami_id": "415",
+"name": "酒吞呱",
+"rarity": "N",
+"icon_asset_id": "pic_ss_jiutungua",
+"sort_order": 155
+},
+{
+"shikigami_id": "414",
+"name": "大天狗呱",
+"rarity": "N",
+"icon_asset_id": "pic_ss_datiangougua",
+"sort_order": 156
+},
+{
+"shikigami_id": "311",
+"name": "面灵气",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_mianlingqi",
+"sort_order": 157
+},
+{
+"shikigami_id": "307",
+"name": "猫掌柜",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_maoyou",
+"sort_order": 158
+},
+{
+"shikigami_id": "309",
+"name": "阿香",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_axiang",
+"sort_order": 159
+},
+{
+"shikigami_id": "310",
+"name": "蜜桃&芥子",
+"rarity": "R",
+"icon_asset_id": "pic_ss_taozijiezi",
+"sort_order": 160
+},
+{
+"shikigami_id": "308",
+"name": "鬼灯",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_guideng",
+"sort_order": 161
+},
+{
+"shikigami_id": "294",
+"name": "奴良陆生",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_huatougui",
+"sort_order": 162
+},
+{
+"shikigami_id": "305",
+"name": "卖药郎",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_maiyaolang",
+"sort_order": 163
+},
+{
+"shikigami_id": "306",
+"name": "虫师",
+"rarity": "R",
+"icon_asset_id": "pic_ss_chongshi",
+"sort_order": 164
+},
+{
+"shikigami_id": "298",
+"name": "薰",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_xun",
+"sort_order": 165
+},
+{
+"shikigami_id": "296",
+"name": "山风",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_shanfeng",
+"sort_order": 166
+},
+{
+"shikigami_id": "302",
+"name": "小袖之手",
+"rarity": "R",
+"icon_asset_id": "pic_ss_xiaoxiuzhishou",
+"sort_order": 167
+},
+{
+"shikigami_id": "303",
+"name": "弈",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_qihun",
+"sort_order": 168
+},
+{
+"shikigami_id": "304",
+"name": "御馔津",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_yuzhuanjin",
+"sort_order": 169
+},
+{
+"shikigami_id": "297",
+"name": "日和坊",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_rihefang",
+"sort_order": 170
+},
+{
+"shikigami_id": "295",
+"name": "追月神",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_zhuiyueshen",
+"sort_order": 171
+},
+{
+"shikigami_id": "301",
+"name": "数珠",
+"rarity": "R",
+"icon_asset_id": "pic_ss_shuzhu",
+"sort_order": 172
+},
+{
+"shikigami_id": "300",
+"name": "玉藻前",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_yuzaoqian",
+"sort_order": 173
+},
+{
+"shikigami_id": "293",
+"name": "百目鬼",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_baimugui",
+"sort_order": 174
+},
+{
+"shikigami_id": "292",
+"name": "雪童子",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_xuetongzi",
+"sort_order": 175
+},
+{
+"shikigami_id": "291",
+"name": "书翁",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_shuweng",
+"sort_order": 176
+},
+{
+"shikigami_id": "289",
+"name": "兔丸",
+"rarity": "R",
+"icon_asset_id": "pic_ss_tuwan",
+"sort_order": 177
+},
+{
+"shikigami_id": "290",
+"name": "小松丸",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_xiaosongwan",
+"sort_order": 178
+},
+{
+"shikigami_id": "288",
+"name": "彼岸花",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_bianhua",
+"sort_order": 179
+},
+{
+"shikigami_id": "287",
+"name": "匣中少女",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_xiazhongshaonv",
+"sort_order": 180
+},
+{
+"shikigami_id": "285",
+"name": "鸩",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_zhen",
+"sort_order": 181
+},
+{
+"shikigami_id": "286",
+"name": "以津真天",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_yijinzhentian",
+"sort_order": 182
+},
+{
+"shikigami_id": "275",
+"name": "万年竹",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_wannianzhu",
+"sort_order": 183
+},
+{
+"shikigami_id": "282",
+"name": "金鱼姬",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_jinyuji",
+"sort_order": 184
+},
+{
+"shikigami_id": "283",
+"name": "荒",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_huang",
+"sort_order": 185
+},
+{
+"shikigami_id": "273",
+"name": "青坊主",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_qingfangzhu",
+"sort_order": 186
+},
+{
+"shikigami_id": "274",
+"name": "古笼火",
+"rarity": "R",
+"icon_asset_id": "pic_ss_gulonghuo",
+"sort_order": 187
+},
+{
+"shikigami_id": "276",
+"name": "夜叉",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_yecha",
+"sort_order": 188
+},
+{
+"shikigami_id": "277",
+"name": "黑童子",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_heitongzi",
+"sort_order": 189
+},
+{
+"shikigami_id": "278",
+"name": "白童子",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_baitongzi",
+"sort_order": 190
+},
+{
+"shikigami_id": "279",
+"name": "花鸟卷",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_huaniaojuan",
+"sort_order": 191
+},
+{
+"shikigami_id": "281",
+"name": "烟烟罗",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_yanyanluo",
+"sort_order": 192
+},
+{
+"shikigami_id": "280",
+"name": "辉夜姬",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_huiyeji",
+"sort_order": 193
+},
+{
+"shikigami_id": "264",
+"name": "白狼",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_bailang",
+"sort_order": 194
+},
+{
+"shikigami_id": "271",
+"name": "般若",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_bore",
+"sort_order": 195
+},
+{
+"shikigami_id": "227",
+"name": "兵俑",
+"rarity": "R",
+"icon_asset_id": "pic_ss_bingyong",
+"sort_order": 196
+},
+{
+"shikigami_id": "246",
+"name": "赤舌",
+"rarity": "N",
+"icon_asset_id": "pic_ss_chishe",
+"sort_order": 197
+},
+{
+"shikigami_id": "228",
+"name": "丑时之女",
+"rarity": "R",
+"icon_asset_id": "pic_ss_choushizhinv",
+"sort_order": 198
+},
+{
+"shikigami_id": "265",
+"name": "茨木童子",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_cimutongzi",
+"sort_order": 199
+},
+{
+"shikigami_id": "217",
+"name": "大天狗",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_datiangou",
+"sort_order": 200
+},
+{
+"shikigami_id": "400",
+"name": "盗墓小鬼",
+"rarity": "N",
+"icon_asset_id": "pic_ss_daomuxiaogui",
+"sort_order": 201
+},
+{
+"shikigami_id": "203",
+"name": "灯笼鬼",
+"rarity": "N",
+"icon_asset_id": "pic_ss_denglonggui",
+"sort_order": 202
+},
+{
+"shikigami_id": "230",
+"name": "独眼小僧",
+"rarity": "R",
+"icon_asset_id": "pic_ss_duyanxiaoseng",
+"sort_order": 203
+},
+{
+"shikigami_id": "214",
+"name": "饿鬼",
+"rarity": "R",
+"icon_asset_id": "pic_ss_egui",
+"sort_order": 204
+},
+{
+"shikigami_id": "263",
+"name": "二口女",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_erkounv",
+"sort_order": 205
+},
+{
+"shikigami_id": "252",
+"name": "凤凰火",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_fenghuanghuo",
+"sort_order": 206
+},
+{
+"shikigami_id": "262",
+"name": "姑获鸟",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_guhuoniao",
+"sort_order": 207
+},
+{
+"shikigami_id": "223",
+"name": "骨女",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_gunv",
+"sort_order": 208
+},
+{
+"shikigami_id": "236",
+"name": "管狐",
+"rarity": "R",
+"icon_asset_id": "pic_ss_guanhu",
+"sort_order": 209
+},
+{
+"shikigami_id": "231",
+"name": "鬼女红叶",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_guinvhongye",
+"sort_order": 210
+},
+{
+"shikigami_id": "210",
+"name": "鬼使白",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_baiwuchang",
+"sort_order": 211
+},
+{
+"shikigami_id": "211",
+"name": "鬼使黑",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_heiwuchang",
+"sort_order": 212
+},
+{
+"shikigami_id": "247",
+"name": "海坊主",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_haifangzhu",
+"sort_order": 213
+},
+{
+"shikigami_id": "209",
+"name": "河童",
+"rarity": "R",
+"icon_asset_id": "pic_ss_hetong",
+"sort_order": 214
+},
+{
+"shikigami_id": "241",
+"name": "蝴蝶精",
+"rarity": "R",
+"icon_asset_id": "pic_ss_hudiejing",
+"sort_order": 215
+},
+{
+"shikigami_id": "248",
+"name": "荒川之主",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_heichuanzhu",
+"sort_order": 216
+},
+{
+"shikigami_id": "268",
+"name": "惠比寿",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_fushen",
+"sort_order": 217
+},
+{
+"shikigami_id": "401",
+"name": "寄生魂",
+"rarity": "N",
+"icon_asset_id": "pic_ss_jishenghun",
+"sort_order": 218
+},
+{
+"shikigami_id": "234",
+"name": "椒图",
+"rarity": "R",
+"icon_asset_id": "pic_ss_jiaotu",
+"sort_order": 219
+},
+{
+"shikigami_id": "249",
+"name": "觉",
+"rarity": "R",
+"icon_asset_id": "pic_ss_jue",
+"sort_order": 220
+},
+{
+"shikigami_id": "207",
+"name": "九命猫",
+"rarity": "R",
+"icon_asset_id": "pic_ss_jiumingmaoyao",
+"sort_order": 221
+},
+{
+"shikigami_id": "219",
+"name": "酒吞童子",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_jiutuntongzi",
+"sort_order": 222
+},
+{
+"shikigami_id": "242",
+"name": "傀儡师",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_kuileishi",
+"sort_order": 223
+},
+{
+"shikigami_id": "208",
+"name": "狸猫",
+"rarity": "R",
+"icon_asset_id": "pic_ss_limao",
+"sort_order": 224
+},
+{
+"shikigami_id": "206",
+"name": "鲤鱼精",
+"rarity": "R",
+"icon_asset_id": "pic_ss_liyujing",
+"sort_order": 225
+},
+{
+"shikigami_id": "261",
+"name": "镰鼬",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_lianyou",
+"sort_order": 226
+},
+{
+"shikigami_id": "258",
+"name": "两面佛",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_liangmianfo",
+"sort_order": 227
+},
+{
+"shikigami_id": "270",
+"name": "络新妇",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_luoxinfu",
+"sort_order": 228
+},
+{
+"shikigami_id": "215",
+"name": "孟婆",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_mengpo",
+"sort_order": 229
+},
+{
+"shikigami_id": "251",
+"name": "判官",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_panguan",
+"sort_order": 230
+},
+{
+"shikigami_id": "266",
+"name": "青行灯",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_qingxingdeng",
+"sort_order": 231
+},
+{
+"shikigami_id": "250",
+"name": "青蛙瓷器",
+"rarity": "R",
+"icon_asset_id": "pic_ss_qingwaciqi",
+"sort_order": 232
+},
+{
+"shikigami_id": "260",
+"name": "清姬",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_qingji",
+"sort_order": 233
+},
+{
+"shikigami_id": "220",
+"name": "犬神",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_quanshen",
+"sort_order": 234
+},
+{
+"shikigami_id": "202",
+"name": "三尾狐",
+"rarity": "R",
+"icon_asset_id": "pic_ss_sanweihu",
+"sort_order": 235
+},
+{
+"shikigami_id": "243",
+"name": "山童",
+"rarity": "R",
+"icon_asset_id": "pic_ss_shantong",
+"sort_order": 236
+},
+{
+"shikigami_id": "237",
+"name": "山兔",
+"rarity": "R",
+"icon_asset_id": "pic_ss_shantu",
+"sort_order": 237
+},
+{
+"shikigami_id": "221",
+"name": "食发鬼",
+"rarity": "R",
+"icon_asset_id": "pic_ss_shifagui",
+"sort_order": 238
+},
+{
+"shikigami_id": "257",
+"name": "食梦貘",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_shimengmo",
+"sort_order": 239
+},
+{
+"shikigami_id": "244",
+"name": "首无",
+"rarity": "R",
+"icon_asset_id": "pic_ss_shouwu",
+"sort_order": 240
+},
+{
+"shikigami_id": "403",
+"name": "唐纸伞妖",
+"rarity": "N",
+"icon_asset_id": "pic_ss_tangzhishanyao",
+"sort_order": 241
+},
+{
+"shikigami_id": "200",
+"name": "桃花妖",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_taohuayao",
+"sort_order": 242
+},
+{
+"shikigami_id": "245",
+"name": "提灯小僧",
+"rarity": "N",
+"icon_asset_id": "pic_ss_tidengxiaoseng",
+"sort_order": 243
+},
+{
+"shikigami_id": "405",
+"name": "天邪鬼赤",
+"rarity": "N",
+"icon_asset_id": "pic_ss_chitianxiegui",
+"sort_order": 244
+},
+{
+"shikigami_id": "406",
+"name": "天邪鬼黄",
+"rarity": "N",
+"icon_asset_id": "pic_ss_huangtianxiegui",
+"sort_order": 245
+},
+{
+"shikigami_id": "404",
+"name": "天邪鬼绿",
+"rarity": "N",
+"icon_asset_id": "pic_ss_lvtianxiegui",
+"sort_order": 246
+},
+{
+"shikigami_id": "407",
+"name": "天邪鬼青",
+"rarity": "N",
+"icon_asset_id": "pic_ss_qingtianxiegui",
+"sort_order": 247
+},
+{
+"shikigami_id": "225",
+"name": "跳跳弟弟",
+"rarity": "R",
+"icon_asset_id": "pic_ss_tiaotiaodidi",
+"sort_order": 248
+},
+{
+"shikigami_id": "233",
+"name": "跳跳哥哥",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_tiaotiaogege",
+"sort_order": 249
+},
+{
+"shikigami_id": "226",
+"name": "跳跳妹妹",
+"rarity": "R",
+"icon_asset_id": "pic_ss_tiaotiaomeimei",
+"sort_order": 250
+},
+{
+"shikigami_id": "232",
+"name": "铁鼠",
+"rarity": "R",
+"icon_asset_id": "pic_ss_tieshu",
+"sort_order": 251
+},
+{
+"shikigami_id": "212",
+"name": "童男",
+"rarity": "R",
+"icon_asset_id": "pic_ss_tongnan",
+"sort_order": 252
+},
+{
+"shikigami_id": "213",
+"name": "童女",
+"rarity": "R",
+"icon_asset_id": "pic_ss_tongnv",
+"sort_order": 253
+},
+{
+"shikigami_id": "409",
+"name": "涂壁",
+"rarity": "N",
+"icon_asset_id": "pic_ss_tubi",
+"sort_order": 254
+},
+{
+"shikigami_id": "216",
+"name": "巫蛊师",
+"rarity": "R",
+"icon_asset_id": "pic_ss_wugushi",
+"sort_order": 255
+},
+{
+"shikigami_id": "222",
+"name": "武士之灵",
+"rarity": "R",
+"icon_asset_id": "pic_ss_wushizhiling",
+"sort_order": 256
+},
+{
+"shikigami_id": "253",
+"name": "吸血姬",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_xixueji",
+"sort_order": 257
+},
+{
+"shikigami_id": "259",
+"name": "小鹿男",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_xiaolunan",
+"sort_order": 258
+},
+{
+"shikigami_id": "201",
+"name": "雪女",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_xuenv",
+"sort_order": 259
+},
+{
+"shikigami_id": "218",
+"name": "鸦天狗",
+"rarity": "R",
+"icon_asset_id": "pic_ss_yatiangou",
+"sort_order": 260
+},
+{
+"shikigami_id": "255",
+"name": "阎魔",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_yanmo",
+"sort_order": 261
+},
+{
+"shikigami_id": "269",
+"name": "妖刀姬",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_yaodaoji",
+"sort_order": 262
+},
+{
+"shikigami_id": "254",
+"name": "妖狐",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_yaohu",
+"sort_order": 263
+},
+{
+"shikigami_id": "256",
+"name": "妖琴师",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_qinmo",
+"sort_order": 264
+},
+{
+"shikigami_id": "272",
+"name": "一目连",
+"rarity": "SSR",
+"icon_asset_id": "pic_ss_yimulian",
+"sort_order": 265
+},
+{
+"shikigami_id": "267",
+"name": "樱花妖",
+"rarity": "SR",
+"icon_asset_id": "pic_ss_yinghuayao",
+"sort_order": 266
+},
+{
+"shikigami_id": "238",
+"name": "萤草",
+"rarity": "R",
+"icon_asset_id": "pic_ss_yingcao",
+"sort_order": 267
+},
+{
+"shikigami_id": "224",
+"name": "雨女",
+"rarity": "R",
+"icon_asset_id": "pic_ss_yunv",
+"sort_order": 268
+},
+{
+"shikigami_id": "408",
+"name": "帚神",
+"rarity": "N",
+"icon_asset_id": "pic_ss_zhoushen",
+"sort_order": 269
+},
+{
+"shikigami_id": "205",
+"name": "座敷童子",
+"rarity": "R",
+"icon_asset_id": "pic_ss_zuofutongzi",
+"sort_order": 270
+},
+{
+"shikigami_id": "410",
+"name": "招福达摩",
+"rarity": "素材",
+"icon_asset_id": null,
+"sort_order": 1000
+},
+{
+"shikigami_id": "411",
+"name": "御行达摩",
+"rarity": "素材",
+"icon_asset_id": null,
+"sort_order": 1001
+},
+{
+"shikigami_id": "412",
+"name": "奉为达摩",
+"rarity": "素材",
+"icon_asset_id": null,
+"sort_order": 1002
+},
+{
+"shikigami_id": "413",
+"name": "大吉达摩",
+"rarity": "素材",
+"icon_asset_id": null,
+"sort_order": 1003
+},
+{
+"shikigami_id": "499",
+"name": "鬼武达摩",
+"rarity": "素材",
+"icon_asset_id": null,
+"sort_order": 1004
+}
+]

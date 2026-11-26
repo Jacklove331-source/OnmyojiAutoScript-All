@@ -1,0 +1,63 @@
+{
+  "task": "BondlingFairyland",
+  "name": "bondling_fairyland_close_btn",
+  "versions": [
+    {
+      "version": 1,
+      "file": "BondlingFairyland/bondling_fairyland_close_btn/v001.png",
+      "created": 1794236069.0813735,
+      "created_text": "2026-11-09 22:54:29",
+      "source": "ai_auto",
+      "resolution": [
+        1280,
+        720
+      ],
+      "game_version": "",
+      "region": {
+        "x": 0.858,
+        "y": 0.108,
+        "w": 0.066,
+        "h": 0.09
+      },
+      "validation": {
+        "passed": true,
+        "reason": "ok",
+        "positive_min": 1.0,
+        "positive_avg": 1.0,
+        "negative_max": 0.683,
+        "false_positive_rate": 0.0,
+        "samples": 1,
+        "detail": {
+          "positive_scores": [
+            1.0
+          ],
+          "negative_scores": [
+            0.0264,
+            0.4857,
+            0.683,
+            0.1563,
+            0.6425,
+            -0.1997,
+            -0.3272,
+            0.0484,
+            0.107,
+            -0.0369,
+            0.4648,
+            -0.0378,
+            0.3052,
+            -0.6646,
+            -0.059,
+            0.4607,
+            0.65,
+            0.2853,
+            0.0137,
+            0.2653
+          ],
+          "negatives_skipped_same_page": 0
+        }
+      },
+      "note": "协战式神弹窗右上角红色X关闭按钮，可复用为弹窗关闭模板"
+    }
+  ],
+  "active_version": 1
+}

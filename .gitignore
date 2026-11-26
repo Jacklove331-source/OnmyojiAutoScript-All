@@ -1,0 +1,41 @@
+# 通用忽略规则
+__pycache__/
+*.py[cod]
+*.log
+*.err
+*.tmp
+*.bak
+*.bak*
+*.key
+*.jks
+*.keystore
+.DS_Store
+Thumbs.db
+
+# 电脑端运行时与个人配置（切勿提交个人账号配置与密钥）
+desktop/toolkit/
+desktop/log/
+desktop/out/
+desktop/_backups/
+desktop/config/*.json
+!desktop/config/template*.json
+desktop/config/*.yaml
+!desktop/config/deploy.*.yaml
+desktop/config/ai_recovery.*
+desktop/config/workbench/
+desktop/config/findjade/
+
+# 手机端构建产物与本地缓存
+mobile/build/
+mobile/dist/
+mobile/.dart_tool/
+mobile/.gradle/
+mobile/android/.gradle/
+mobile/android/local.properties
+mobile/android/app/src/main/python/log/
+mobile/flutter-sdk/
+mobile/mobile-wheels*/
+mobile/.host-deps/
+mobile/*.apk
+mobile/*.aab
+mobile/ota_config.json

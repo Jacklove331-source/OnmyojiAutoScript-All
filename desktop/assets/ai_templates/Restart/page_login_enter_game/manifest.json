@@ -1,0 +1,63 @@
+{
+  "task": "Restart",
+  "name": "page_login_enter_game",
+  "versions": [
+    {
+      "version": 1,
+      "file": "Restart/page_login_enter_game/v001.png",
+      "created": 1794299225.1018665,
+      "created_text": "2026-11-10 16:27:05",
+      "source": "ai_auto",
+      "resolution": [
+        1280,
+        720
+      ],
+      "game_version": "",
+      "region": {
+        "x": 0.36,
+        "y": 0.745,
+        "w": 0.28,
+        "h": 0.09
+      },
+      "validation": {
+        "passed": true,
+        "reason": "ok",
+        "positive_min": 1.0,
+        "positive_avg": 1.0,
+        "negative_max": 0.4445,
+        "false_positive_rate": 0.0,
+        "samples": 1,
+        "detail": {
+          "positive_scores": [
+            1.0
+          ],
+          "negative_scores": [
+            0.1305,
+            0.1053,
+            0.0979,
+            0.1055,
+            0.1482,
+            0.0378,
+            0.0819,
+            0.1398,
+            0.2576,
+            0.0999,
+            -0.0583,
+            0.0209,
+            0.0442,
+            0.1763,
+            -0.2518,
+            -0.0117,
+            0.036,
+            0.4445,
+            -0.0723,
+            -0.3207
+          ],
+          "negatives_skipped_same_page": 0
+        }
+      },
+      "note": "登录首页“进入游戏”按钮，含金色底纹文字"
+    }
+  ],
+  "active_version": 1
+}

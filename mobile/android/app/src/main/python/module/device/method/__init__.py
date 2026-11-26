@@ -1,0 +1,1 @@
+# Android 端 module.device.method 兼容包：桌面任务会 import 这里的名字，\n# 但真正的操作走 module/device/device.py 的实现。\n

@@ -1,0 +1,17 @@
+{
+  "_comment": "由 align_attrs2.py 用数值指纹与平安志 sqlite 对表生成（权威）",
+  "certain": {
+    "0": "hp_flat",
+    "1": "defense_flat",
+    "2": "attack_flat",
+    "3": "hp_rate",
+    "4": "defense_rate",
+    "5": "attack_rate",
+    "6": "speed",
+    "7": "crit_rate",
+    "8": "crit_damage",
+    "9": "effect_hit",
+    "10": "effect_resist"
+  },
+  "provisional": {}
+}

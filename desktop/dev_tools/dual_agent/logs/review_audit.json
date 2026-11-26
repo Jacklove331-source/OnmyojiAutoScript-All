@@ -1,0 +1,9 @@
+[11:01:15] agent_a[anthropic/claude-opus-5-5/review_hard] ok=True 365.3s ¥8.0565 in=8+cr136094+cw63351 out=38362
+[11:01:15] 任务 T-audit-metrics-fix 通过 Claude 审核
+{
+ "task_key": "T-audit-metrics-fix",
+ "phase": "accepted",
+ "verdict": "PASS",
+ "reviewer": "claude-opus-5-5",
+ "review_note": "通过。上轮 REWORK 的要求已落实：chess_decision_audit.py:197-202 的 close_pending(ok=False) 会把未确认购买回填到 timeline[发起回合]['buy_unconfirmed']，和 :190-194 的 buy_ok 回填对称。rnd 在两个分支各取了一次，没有提到 if ok 之前，功能等价，不用改。测试文件从 REWORK 快照 446832bc 起没有任何改动，:71 那条断言原样保留，不是靠改断言过关的。我在真实日志 chess_validate4_2234.log 上实跑了审计：第 1 局 1~8 回合 buy_ok=[0,0,1,1,0,3,1,1]，第 2 局=[1,0,2,0,0,0,0,1]；两局逐回合 buy_ok 之和都等于 events.buy_ok（37/37、29/29），buy_unconfirmed 也对得上（1/1）；soul_equipped 从 0 修正为 10 和 7。文本模式 rc=0，新加的 buyOK 列显示正常。遗留问题这轮不要碰：`[ChessMatch] start` 分支直接把 pending_buy 置 None，上一局最后一笔购买既不算确认也不算未确认，以后另开任务。"
+}

@@ -1,0 +1,134 @@
+[
+ {
+  "catalog_version": "builtin-2026.10.3",
+  "set_id": "破势",
+  "scenario": "PVE",
+  "value": "common"
+ },
+ {
+  "catalog_version": "builtin-2026.10.3",
+  "set_id": "针女",
+  "scenario": "PVE",
+  "value": "common"
+ },
+ {
+  "catalog_version": "builtin-2026.10.3",
+  "set_id": "招财猫",
+  "scenario": "PVE",
+  "value": "common"
+ },
+ {
+  "catalog_version": "builtin-2026.10.3",
+  "set_id": "火灵",
+  "scenario": "PVE",
+  "value": "common"
+ },
+ {
+  "catalog_version": "builtin-2026.10.3",
+  "set_id": "蚌精",
+  "scenario": "PVE",
+  "value": "common"
+ },
+ {
+  "catalog_version": "builtin-2026.10.3",
+  "set_id": "遗念火",
+  "scenario": "PVE",
+  "value": "common"
+ },
+ {
+  "catalog_version": "builtin-2026.10.3",
+  "set_id": "共潜",
+  "scenario": "PVE",
+  "value": "uncommon"
+ },
+ {
+  "catalog_version": "builtin-2026.10.3",
+  "set_id": "海月火玉",
+  "scenario": "PVE",
+  "value": "common"
+ },
+ {
+  "catalog_version": "builtin-2026.10.3",
+  "set_id": "魅妖",
+  "scenario": "PVE",
+  "value": "uncommon"
+ },
+ {
+  "catalog_version": "builtin-2026.10.3",
+  "set_id": "雪幽魂",
+  "scenario": "PVE",
+  "value": "uncommon"
+ },
+ {
+  "catalog_version": "builtin-2026.10.3",
+  "set_id": "隐念",
+  "scenario": "PVE",
+  "value": "common"
+ },
+ {
+  "catalog_version": "builtin-2026.10.3",
+  "set_id": "破势",
+  "scenario": "PVP",
+  "value": "common"
+ },
+ {
+  "catalog_version": "builtin-2026.10.3",
+  "set_id": "针女",
+  "scenario": "PVP",
+  "value": "common"
+ },
+ {
+  "catalog_version": "builtin-2026.10.3",
+  "set_id": "招财猫",
+  "scenario": "PVP",
+  "value": "common"
+ },
+ {
+  "catalog_version": "builtin-2026.10.3",
+  "set_id": "火灵",
+  "scenario": "PVP",
+  "value": "common"
+ },
+ {
+  "catalog_version": "builtin-2026.10.3",
+  "set_id": "蚌精",
+  "scenario": "PVP",
+  "value": "common"
+ },
+ {
+  "catalog_version": "builtin-2026.10.3",
+  "set_id": "遗念火",
+  "scenario": "PVP",
+  "value": "common"
+ },
+ {
+  "catalog_version": "builtin-2026.10.3",
+  "set_id": "共潜",
+  "scenario": "PVP",
+  "value": "common"
+ },
+ {
+  "catalog_version": "builtin-2026.10.3",
+  "set_id": "海月火玉",
+  "scenario": "PVP",
+  "value": "uncommon"
+ },
+ {
+  "catalog_version": "builtin-2026.10.3",
+  "set_id": "魅妖",
+  "scenario": "PVP",
+  "value": "common"
+ },
+ {
+  "catalog_version": "builtin-2026.10.3",
+  "set_id": "雪幽魂",
+  "scenario": "PVP",
+  "value": "common"
+ },
+ {
+  "catalog_version": "builtin-2026.10.3",
+  "set_id": "隐念",
+  "scenario": "PVP",
+  "value": "uncommon"
+ }
+]

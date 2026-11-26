@@ -1,0 +1,58 @@
+{
+  "task": "MetaDemon",
+  "name": "courtyard_explore_lantern",
+  "versions": [
+    {
+      "version": 1,
+      "file": "MetaDemon/courtyard_explore_lantern/v001.png",
+      "created": 1794538426.208384,
+      "created_text": "2026-11-13 10:53:46",
+      "source": "ai_auto",
+      "resolution": [
+        1280,
+        720
+      ],
+      "game_version": "",
+      "region": {
+        "x": 0.355,
+        "y": 0.135,
+        "w": 0.085,
+        "h": 0.115
+      },
+      "validation": {
+        "passed": true,
+        "reason": "ok",
+        "positive_min": 1.0,
+        "positive_avg": 1.0,
+        "negative_max": 0.4994,
+        "false_positive_rate": 0.0,
+        "samples": 1,
+        "detail": {
+          "positive_scores": [
+            1.0
+          ],
+          "negative_scores": [
+            0.4867,
+            0.4347,
+            0.3977,
+            0.4994,
+            0.494,
+            0.432,
+            0.4751,
+            0.443,
+            0.4444,
+            0.4485
+          ],
+          "negatives_skipped_same_page": 0
+        }
+      },
+      "note": "庭院左上区探索灯笼按钮，可作为庭院页特征锚点，避免主界面被误判为未知页",
+      "config_name": "oas1",
+      "replay": {}
+    }
+  ],
+  "active_version": 1,
+  "active_by_config": {
+    "oas1": 1
+  }
+}

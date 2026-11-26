@@ -1,0 +1,10 @@
+[10:11:20] agent_a call ok=True 278.5s cost=¥0.9040 tokens=37316/23245
+[10:11:20] 任务 T-deploy-empty-fix 需要返工（剩余 1 次）
+Traceback (most recent call last):
+  File "D:\3D\YYS2\OnmyojiAutoScript-easy-install-1\dev_tools\dual_agent\deepseek_b.py", line 171, in <module>
+    sys.exit(main())
+  File "D:\3D\YYS2\OnmyojiAutoScript-easy-install-1\dev_tools\dual_agent\deepseek_b.py", line 162, in main
+    return {
+  File "D:\3D\YYS2\OnmyojiAutoScript-easy-install-1\dev_tools\dual_agent\deepseek_b.py", line 126, in cmd_review
+    'verdict': after.verdict,
+AttributeError: 'Task' object has no attribute 'verdict'

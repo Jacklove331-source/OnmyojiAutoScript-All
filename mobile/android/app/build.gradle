@@ -1,0 +1,124 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    // Flutter Gradle Plugin 必须在 Android/Kotlin 插件之后应用
+    id "dev.flutter.flutter-gradle-plugin"
+    // Chaquopy：把 CPython 嵌进 APK，用来跑 OAS 的 Python 任务引擎
+    id "com.chaquo.python"
+}
+
+android {
+    namespace = "com.oas.oasx"
+    compileSdk = 36
+    ndkVersion = "27.0.12077973"
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
+    defaultConfig {
+        applicationId = "com.oas.oasx"
+        // Chaquopy 16.1 要求 minSdk >= 24（Android 7.0+）；最新正式版 Android 是首要目标
+        minSdk = 24
+        targetSdk = 36
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+
+        // 默认出真机 arm64 包；模拟器用 -Pabi=x86_64 或 ORG_GRADLE_PROJECT_abi=x86_64
+        def flutterTarget = (project.findProperty("target-platform") ?: "android-arm64").toString()
+        def targetAbi = project.findProperty("abi") ?: (flutterTarget == "android-x64" ? "x86_64" : "arm64-v8a")
+        ndk {
+            abiFilters targetAbi
+        }
+
+    }
+
+    sourceSets {
+        main {
+            python.srcDir "src/main/python"
+        }
+    }
+
+    packaging {
+        jniLibs {
+            // 16 KB page size 设备（Android 15+）需要未压缩/对齐的 .so
+            useLegacyPackaging = false
+        }
+    }
+
+    buildTypes {
+        release {
+            // 先用 debug 签名，方便模拟器/真机安装验证
+            signingConfig = signingConfigs.debug
+            // R8 会把 Kotlin 名字混淆掉，而 Python 侧是照名字调的（jclass("com.oas.oasx.X").isRunning()），
+            // 混淆后调用失败 → 权限/前台服务全部误报 False。这里必须带 keep 规则。
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+flutter {
+    source = "../.."
+}
+
+// Chaquopy 官方新语法（16.x）：Python 版本、pip 依赖都在这里配置
+chaquopy {
+    sourceSets {
+        getByName("main") {
+            exclude "log/**"
+        }
+    }
+
+    defaultConfig {
+        version = "3.10"
+        buildPython "D:/3D/YYS2/OnmyojiAutoScript-easy-install-1/toolkit/python.exe"
+        pip {
+            // chaquo.com 在本机直连很慢（ReadTimeout）→ 先把 x86_64/cp310 wheel 下到本地，
+            // 用 --find-links 让 pip 从本地装，构建不再受网络影响。
+            options "--find-links", rootProject.file("../mobile-wheels").absolutePath
+            // arm64 真机 wheel（chaquo.com 单连接约 20KB/s，已离线补齐）
+            options "--find-links", rootProject.file("../mobile-wheels-arm64").absolutePath
+            options "--timeout", "30", "--retries", "2"
+            // pypi.org 本机实测 34s/次，会把 build 卡在 "Chaquopy: Installing" 二三十分钟。
+            // 关键点：**保留 chaquo 自己的索引为主**（chaquopy-openblas 等只在那里），
+            // 再用 --extra-index-url 加国内镜像；这样索引列表里不再出现 pypi.org。
+            options "--index-url", "https://chaquo.com/pypi-13.1"
+            options "--extra-index-url", "https://pypi.tuna.tsinghua.edu.cn/simple"
+            install "numpy==1.23.3"
+            install "opencv-python"
+            install "lxml"
+            install "psutil"
+            install "PyYAML"
+            install "cached_property"
+            install "rich"
+            install "filelock"
+            install "typing-extensions"
+            install "cn2an"
+            install "scipy"
+            install "urllib3"
+            install "certifi"
+            install "memory-profiler"
+            install "paho-mqtt"
+            install "exceptiongroup"
+            install "requests"
+            install "inflection"
+            install "decorator"
+        }
+    }
+}
+
+dependencies {
+    implementation "com.microsoft.onnxruntime:onnxruntime-android:1.23.2"
+    // OCR：ML Kit 中文识别（bundled 版，模型随包，模拟器/无 GMS 设备也能用）
+    implementation "com.google.mlkit:text-recognition-chinese:16.0.1"
+    implementation "com.google.android.gms:play-services-tasks:18.1.0"
+
+    // Shizuku：免 Root 拿 shell 级权限（虚拟屏后台挂机用）
+    implementation "dev.rikka.shizuku:api:13.1.5"
+    implementation "dev.rikka.shizuku:provider:13.1.5"
+}

@@ -1,0 +1,376 @@
+# This Python file uses the following encoding: utf-8
+# @author runhey
+# github https://github.com/runhey
+from cached_property import cached_property
+from datetime import datetime
+from time import sleep
+
+
+from module.base.timer import Timer
+from module.logger import logger
+from module.exception import TaskEnd
+from module.atom.ocr import RuleOcr
+
+# 逢魔活动结束后，游戏页中央会盖一条「活动已结束」，此时「超鬼王」入口仍在、模板也命中，
+# 但点它不会有任何页面变化 → 手机端连点保护抛 GameTooManyClickError（实测 run c202de39 / 6f80fcee）。
+# ROI 由 1600×900 实拍帧换算（文案区 x≈700-880 / y≈290-320 → 1280×720 空间 x≈560-704 / y≈232-256，加余量）。
+O_MD_ACTIVITY_ENDED = RuleOcr(roi=(520, 210, 300, 60), area=(520, 210, 300, 60),
+                              mode="Single", method="Default", keyword="活动已结束",
+                              name="md_activity_ended")
+
+
+from tasks.Component.RightActivity.right_activity import RightActivity
+from tasks.Component.GeneralBattle.general_battle import GeneralBattle
+from tasks.Component.GeneralBattle.battle import Battle
+from tasks.Component.GeneralBattle.battle_wait import (
+    BattleResult, HookSignal, PerTaskPreset, PrivateContext, PublicContext,
+    battle_wait_strategy, battle_wait_options, runtime,
+)
+from tasks.Component.GeneralBattle.config_general_battle import GeneralBattleConfig
+from tasks.Component.SwitchSoul.switch_soul import SwitchSoul
+from tasks.GameUi.game_ui import GameUi
+from tasks.GameUi.page import page_main, page_shikigami_records
+from tasks.MetaDemon.config import MetaDemon, DefaultStrategy, Strategy
+from tasks.MetaDemon.assets import MetaDemonAssets
+from tasks.Restart.assets import RestartAssets
+from tasks.ActivityShikigami.assets import ActivityShikigamiAssets
+
+
+
+class Star56(GameUi, MetaDemonAssets):
+
+    @cached_property
+    def cached_strategies(self) -> dict[str, list[int]]:
+        return Strategy.parse_all(self.config.meta_demon.md_strategies)
+
+    @cached_property
+    def cached_default_group_team(self) -> list[int]:
+        return Strategy.parse_group_team(self.config.meta_demon.md_default_strategy.md_preset_group_team_default_1) \
+            + Strategy.parse_group_team(self.config.meta_demon.md_default_strategy.md_preset_group_team_default_2)
+
+    def is_star56(self):
+        if not self.appear(self.I_STAR56_POS_1):
+            return True
+        return False
+
+    def hp_threshold_low(self, image):
+        """
+        @param image:
+        @return: 血量小于阈值返回True
+        """
+        return self.appear(self.I_STAR56_HP_THRESHOLD_F) and not self.appear(self.I_STAR56_HP_THRESHOLD_T)
+
+    @classmethod
+    def strategy2group_team(cls, strategies: dict[str, list[int]], detect_name: str) -> list[int] | None:
+        """
+        先是默认的完全匹配，然后是1个字符不同，最后是2个字符不同
+        @param strategies:
+        @param detect_name:
+        @return:
+        """
+        for i in range(2):
+            for key_name in strategies:
+                if len(key_name) != len(detect_name):
+                    continue
+                diff_count = sum(1 for c1, c2 in zip(key_name, detect_name) if c1 != c2)
+                if diff_count <= i < len(detect_name):
+                    return strategies[key_name]
+        return None
+
+    def get_group_team(self, detect_name: str) -> list[int]:
+        tmp = self.strategy2group_team(self.cached_strategies, detect_name)
+        return tmp if tmp else self.cached_default_group_team
+
+
+class ScriptTask(RightActivity, Battle, GeneralBattle, SwitchSoul, Star56):
+
+    def run(self):
+        if self.config.meta_demon.switch_soul.enable:
+            self.goto_page(page_shikigami_records)
+            self.run_switch_soul(self.config.meta_demon.switch_soul.switch_group_team)
+
+        if self.config.meta_demon.switch_soul.enable_switch_by_name:
+            self.goto_page(page_shikigami_records)
+            self.run_switch_soul_by_name(self.config.meta_demon.switch_soul.group_name,
+                                         self.config.meta_demon.switch_soul.team_name)
+
+        self.enter(self.I_RIGHT_ENTER)
+        # 「同一入口连点 3 次、页面毫无变化」= 活动没开（实测：活动关闭时 MD_RIGHT_ENTER / MD_ENTER2
+        # 会一路点到手机端连点保护抛 GameTooManyClickError，run dc832019 / c2e1c102）。
+        # 与其等它炸，不如提前认定「本轮无事可做」，排下一个窗口正常收尾。
+        no_progress = 0
+        while 1:
+            self.screenshot()
+            if self.ocr_appear(O_MD_ACTIVITY_ENDED):
+                # 活动已结束就别再点了：入口模板仍会命中，但点了页面不变，最终被连点保护抛错。
+                logger.warning('MetaDemon: 活动已结束，排到下一个活动窗口后退出本轮')
+                self.set_next_run(task='MetaDemon', success=True, finish=True)
+                raise TaskEnd('MetaDemon: activity ended')
+            if self.appear(self.I_FIND_DEMON) or self.appear(self.I_BATTLE_DEMON):
+                break
+
+            if self.ui_reward_appear_click():
+                no_progress = 0
+                continue
+            if self.appear_then_click(self.I_UI_BACK_RED, interval=1.5):
+                no_progress = 0
+                continue
+            if self.appear_then_click(self.I_ENTER_ENSURE, interval=1):
+                no_progress = 0
+                continue
+            if self.appear_then_click(self.I_ENTER2, interval=1):
+                no_progress += 1
+                if no_progress >= 3:
+                    logger.warning('MetaDemon: 入口点了 3 次页面仍无变化，判定活动未开放，排下一窗口后退出')
+                    self.set_next_run(task='MetaDemon', success=True, finish=True)
+                    raise TaskEnd('MetaDemon: activity not open')
+                continue
+        if self.config.meta_demon.meta_demon_config.meta_crafting_card:
+            self.crafting()
+
+        boss_timer = Timer(50)
+        boss_timer.start()
+        first_battle_for_easy_boss = True
+        while 1:
+            battle_processing = False
+            is_hard_boss = False  # 五星或者六星
+            self.screenshot()
+            if not (self.appear(self.I_FIND_DEMON) or self.appear(self.I_BATTLE_DEMON)):
+                continue
+
+            # 疲劳达到阈值时优先召唤鬼王（开关控制，判定先于原有逻辑）
+            if self.config.meta_demon.meta_demon_config.md_fatigue_summon_first:
+                fatigue = self.current_exhaustion()
+                if 61 <= fatigue <= 100 and self.appear(self.I_BOSS_EMPTY):
+                    logger.info('Fatigue >= 61, summon demon first')
+                    if self.find_demon():
+                        boss_timer.reset()
+                        continue
+
+            # 先看自己有没有鬼王要打
+            if (not self.appear(self.I_BOSS_EMPTY) and
+                    (self.appear(self.I_BOSS_CONVENE) or self.appear(self.I_BOOS_PUBLIC))):
+                logger.info('Try to battle boss from self')
+                self.click(self.I_BOSS_EMPTY, interval=1.5)
+                battle_processing = True
+                if self.is_star56():
+                    is_hard_boss = True
+            # 看别人的是否给我共享鬼王
+            if not battle_processing and self.config.meta_demon.meta_demon_config.auto_shared_boss:
+                if not self.appear(self.I_BOSS_EMPTY_1) and self.ocr_appear(self.O_BOSS_EMPTY_1):
+                    logger.info('Try to battle boss 1 from others')
+                    self.click(self.I_BOSS_EMPTY_1, interval=1.5)
+                    self.ui_click(self.I_BOSS_EMPTY_1, stop=self.I_BATTLE_DEMON, interval=1.5)
+                    battle_processing = True
+                    is_hard_boss = True
+                elif not self.appear(self.I_BOSS_EMPTY_2):
+                    logger.info('Try to battle boss 2 from others')
+                    self.click(self.I_BOSS_EMPTY_2, interval=1.5)
+                    self.ui_click(self.I_BOSS_EMPTY_1, stop=self.I_BATTLE_DEMON, interval=1.5)
+                    battle_processing = True
+                    is_hard_boss = True
+            # 是否喝茶 疲劳满了就不打了
+            current_exhaustion = self.current_exhaustion()
+            if current_exhaustion > 100:
+                if self.config.meta_demon.meta_demon_config.auto_tea:
+                    logger.info('Exhaustion is full, buy tea')
+                    boss_timer.reset()
+                    self.buy_tea()
+                else:
+                    logger.info('Exhaustion is full, exit')
+                    break
+            # 超时结束
+            if boss_timer.reached():
+                logger.info('Time out, exit')
+                break
+            # 5/6星特殊处理 + 使用自定义策略组
+            target_group_team = [None, None]
+            if is_hard_boss:
+                logger.info('Hard boss')
+                if self.config.meta_demon.meta_demon_config.md_use_strategy:
+                    detect_full_name = self.O_MD_FULL_NAME.ocr_single(self.device.image)
+                    logger.info(f'detect_full_name: {detect_full_name}')
+                    if not detect_full_name:
+                        detect_full_name = ''
+                    group_team = self.get_group_team(detect_full_name)
+                    if self.hp_threshold_low(self.device.image):
+                        logger.info('Hp threshold low')
+                        target_group_team = group_team[2:4]
+                    else:
+                        logger.info('Hp threshold high')
+                        target_group_team = group_team[0:2]
+            else:
+                if self.config.meta_demon.meta_demon_config.md_use_strategy and first_battle_for_easy_boss:
+                    logger.info('Normal boss first battle use default group team')
+                    target_group_team = self.cached_default_group_team
+            if battle_processing and self.appear(self.I_BATTLE_DEMON):
+                logger.info(f'preset group team: {target_group_team}')
+                self.battle_boss(target_group_team[0], target_group_team[1])
+                if first_battle_for_easy_boss:
+                    first_battle_for_easy_boss = False
+                if is_hard_boss:
+                    first_battle_for_easy_boss = True
+                boss_timer.reset()
+                continue
+
+            # 自己召唤鬼王
+            if current_exhaustion < 90 and self.find_demon():
+                boss_timer.reset()
+                continue
+
+        # 退出
+        self.ui_click(self.I_UI_BACK_YELLOW, self.I_CHECK_MAIN, interval=1.4)
+        logger.info('Exit MetaDemon')
+        self.set_next_run(task="MetaDemon", success=True)
+        raise TaskEnd
+
+    def current_exhaustion(self) -> int:
+        self.screenshot()
+        cu, res, total = self.O_MD_EXHAUSTION.ocr(self.device.image)
+        return int(cu)
+
+    def buy_tea(self):
+        pass
+
+    def crafting(self):
+        """
+        把一星合成二星
+        @return:
+        """
+        logger.info('Star crafting 1 star to 2 star')
+        self.ui_click(self.I_CRAFTING_1, self.I_CRAFTING_START, interval=1.5)
+        timer = Timer(3).start()
+        count = 0
+        while 1:
+            self.screenshot()
+            if self.ui_reward_appear_click():
+                timer.reset()
+                continue
+            if timer.reached() or count > 3:
+                break
+            if not self.ocr_appear(self.O_CRAFTING_CARD_1):
+                break
+            if self.appear(self.I_CRAFTING_EMPTY) or self.appear(self.I_CRAFTING_EMPTY_NEW):
+                if self.appear_then_click(self.I_CRAFTING_CARD_STAR_1, interval=1):
+                    continue
+            else:
+                self.appear_then_click(self.I_CRAFTING_START, interval=3)
+                count += 1
+                timer.reset()
+                continue
+        logger.info('Finish star crafting')
+        self.ui_click_until_disappear(self.I_UI_BACK_RED, interval=1)
+        sleep(0.5)
+
+    def find_demon(self) -> bool:
+        """
+        召唤鬼王
+        @return:
+        """
+        logger.info('Find demon')
+        while 1:
+            self.screenshot()
+            if self.appear(self.I_BATTLE_DEMON) and not self.appear(self.I_BOSS_EMPTY):
+                break
+            if self.appear_then_click(self.I_FIND_DEMON, interval=3.5):
+                continue
+        self.screenshot()
+        if self.is_star56():
+            logger.info('Star 5 or 6 demon found')
+            while 1:
+                sleep(0.4)
+                self.screenshot()
+                detect_full_name = self.O_MD_FULL_NAME.ocr_single(self.device.image)
+                if detect_full_name:
+                    break
+            logger.info(f'召唤到高星鬼王: {detect_full_name}')
+            self.config.notifier.push(content=f'召唤到高星鬼王: {detect_full_name}', title='超鬼王')
+        return True
+
+    def battle_boss(self, group: int = None, team: int = None) -> bool:
+        """
+        战斗流程不再自己写 while 循环，全部交给 battle_wait 的策略化钩子：
+          prepare/preset  准备阶段与预设队伍（5/6 星按推荐阵容切队）
+          success/failure 超鬼王自带的结算界面（I_MD_WIN / I_MD_BATTLE_FAILURE）
+          idle            战斗中给鬼王上标记
+        @param group: 预设组，与 team 同时为 None 时不切预设队伍
+        @param team:  预设队伍，与 group 同时为 None 时不切预设队伍
+        @return: True 战斗胜利，False 战斗失败
+        """
+        logger.info('Battle boss')
+        self.ui_click(self.I_TEAM_LOCK, self.I_TEAM_UNLOCK, interval=1.5, timeout=5)
+        self.ui_click_until_disappear(self.I_BATTLE_DEMON, interval=1.8)
+        # 任务级战斗计数：本场是第几场（和旧日志 Current count 对齐）
+        count = runtime.pub_ctx.per_task.count if runtime.pub_ctx else 0
+        logger.info(f'Current count: {count + 1}')
+
+        battle_config = GeneralBattleConfig()
+        battle_config.lock_team_enable = False
+        # 针对5/6星的挑战
+        if group is not None and team is not None:
+            battle_config.preset_enable = True
+            battle_config.preset_group = group
+            battle_config.preset_team = team
+            # 每只5/6星鬼王的推荐阵容不同，而预设队伍默认是按任务只切一次的，
+            # 这里只复位 preset 的任务级状态，per_task.count 保持累加
+            PerTaskPreset.reset_preset_state(self)
+
+        strategies, options = self.loadout_from_config(battle_config)
+        strategies['success'] = 'metademon'
+        strategies['failure'] = 'metademon'
+        strategies['idle'] = 'metademon'
+        options['completion'].check_imgs = [self.I_CRAFTING_1, self.I_FIND_DEMON, self.I_BATTLE_DEMON]
+
+        self.loadout_show((strategies, options))
+        self.boss_mark_reset()
+        with battle_wait_strategy(**strategies), battle_wait_options(**options):
+            win = self.battle_wait()
+        logger.info(f'Battle boss win: {win}, current count: {runtime.pub_ctx.per_task.count}')
+        return win
+
+    # ------------------------------------------------------------------------------------------------------------------
+    # battle_wait 钩子：超鬼王自己的结算界面与战中行为
+    # ------------------------------------------------------------------------------------------------------------------
+    def _bw_success_metademon(self, pub: PublicContext, pri: PrivateContext) -> HookSignal:
+        if not self.appear(self.I_MD_WIN):
+            return HookSignal.CONTINUE
+        logger.info('Win battle')
+        while 1:
+            self.screenshot()
+            if not self.appear(self.I_MD_WIN):
+                break
+            self.click(self.I_MD_WIN)
+            sleep(0.5)
+        pub.per_battle.success = BattleResult.SUCCESS
+        return runtime.hook_enabled_update(
+            enable=('completion',),
+            disable=('success', 'failure'),
+        )
+
+    def _bw_failure_metademon(self, pub: PublicContext, pri: PrivateContext) -> HookSignal:
+        if not self.appear(self.I_MD_BATTLE_FAILURE):
+            return HookSignal.CONTINUE
+        logger.warning('False battle')
+        self.ui_click_until_disappear(self.I_MD_BATTLE_FAILURE)
+        pub.per_battle.success = BattleResult.FAILURE
+        return runtime.hook_enabled_update(
+            enable=('completion',),
+            disable=('success', 'failure'),
+        )
+
+    def _bw_idle_metademon(self, pub: PublicContext, pri: PrivateContext) -> HookSignal:
+        if self.is_in_real_battle(False):
+            self.boss_mark()
+        return HookSignal.CONTINUE
+
+
+if __name__ == '__main__':
+    from module.config.config import Config
+    from module.device.device import Device
+
+    c = Config('oas1')
+    d = Device(c)
+    t = ScriptTask(c, d)
+
+    t.run()
+

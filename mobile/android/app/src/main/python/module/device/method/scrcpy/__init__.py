@@ -1,0 +1,1 @@
+# scrcpy 协议常量（仅 const 被任务引用，Android 不做 scrcpy 注入）。\n

@@ -1,0 +1,63 @@
+{
+  "task": "Duel",
+  "name": "duel_victory_result",
+  "versions": [
+    {
+      "version": 1,
+      "file": "Duel/duel_victory_result/v001.png",
+      "created": 1793889839.1329029,
+      "created_text": "2026-11-05 22:43:59",
+      "source": "ai_auto",
+      "resolution": [
+        1280,
+        720
+      ],
+      "game_version": "",
+      "region": {
+        "x": 0.42,
+        "y": 0.55,
+        "w": 0.18,
+        "h": 0.1
+      },
+      "validation": {
+        "passed": true,
+        "reason": "ok",
+        "positive_min": 1.0,
+        "positive_avg": 1.0,
+        "negative_max": 0.3661,
+        "false_positive_rate": 0.0,
+        "samples": 1,
+        "detail": {
+          "positive_scores": [
+            1.0
+          ],
+          "negative_scores": [
+            0.2429,
+            0.0729,
+            0.1012,
+            0.0766,
+            -0.0285,
+            -0.0723,
+            0.0718,
+            0.0205,
+            -0.0294,
+            -0.0162,
+            -0.0795,
+            0.0653,
+            -0.0102,
+            -0.0355,
+            0.0499,
+            -0.1072,
+            0.0267,
+            -0.0811,
+            -0.0094,
+            0.0874
+          ],
+          "negatives_skipped_same_page": 0
+        }
+      },
+      "note": "胜利结算页中央空白区，可作点击继续的锚点"
+    }
+  ],
+  "active_version": 1
+}

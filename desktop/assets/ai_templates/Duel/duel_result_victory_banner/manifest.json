@@ -1,0 +1,63 @@
+{
+  "task": "Duel",
+  "name": "duel_result_victory_banner",
+  "versions": [
+    {
+      "version": 1,
+      "file": "Duel/duel_result_victory_banner/v001.png",
+      "created": 1793889768.4018567,
+      "created_text": "2026-11-05 22:42:48",
+      "source": "ai_auto",
+      "resolution": [
+        1280,
+        720
+      ],
+      "game_version": "",
+      "region": {
+        "x": 0.68,
+        "y": 0.03,
+        "w": 0.3,
+        "h": 0.28
+      },
+      "validation": {
+        "passed": true,
+        "reason": "ok",
+        "positive_min": 1.0,
+        "positive_avg": 1.0,
+        "negative_max": 0.2304,
+        "false_positive_rate": 0.0,
+        "samples": 1,
+        "detail": {
+          "positive_scores": [
+            1.0
+          ],
+          "negative_scores": [
+            -0.0989,
+            0.1069,
+            0.2304,
+            0.1269,
+            0.0061,
+            -0.0412,
+            -0.1227,
+            0.0015,
+            -0.049,
+            0.0023,
+            -0.0772,
+            0.0151,
+            0.1517,
+            0.0671,
+            0.0609,
+            0.1835,
+            0.0007,
+            0.2042,
+            0.0756,
+            0.1603
+          ],
+          "negatives_skipped_same_page": 0
+        }
+      },
+      "note": "右上角「拔得头筹」胜利战报标题，可作为 Battle 结算页识别锚点"
+    }
+  ],
+  "active_version": 1
+}

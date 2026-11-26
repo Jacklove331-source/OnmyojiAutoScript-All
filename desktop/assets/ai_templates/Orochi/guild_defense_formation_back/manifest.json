@@ -1,0 +1,63 @@
+{
+  "task": "Orochi",
+  "name": "guild_defense_formation_back",
+  "versions": [
+    {
+      "version": 1,
+      "file": "Orochi/guild_defense_formation_back/v001.png",
+      "created": 1794240654.699167,
+      "created_text": "2026-11-10 00:10:54",
+      "source": "ai_auto",
+      "resolution": [
+        1280,
+        720
+      ],
+      "game_version": "",
+      "region": {
+        "x": 0.0,
+        "y": 0.02,
+        "w": 0.07,
+        "h": 0.11
+      },
+      "validation": {
+        "passed": true,
+        "reason": "ok",
+        "positive_min": 1.0,
+        "positive_avg": 1.0,
+        "negative_max": 0.4046,
+        "false_positive_rate": 0.0,
+        "samples": 1,
+        "detail": {
+          "positive_scores": [
+            1.0
+          ],
+          "negative_scores": [
+            0.3134,
+            -0.1692,
+            0.4046,
+            0.111,
+            -0.1155,
+            -0.2807,
+            -0.0603,
+            0.0073,
+            0.209,
+            0.0666,
+            -0.0782,
+            -0.033,
+            -0.0023,
+            -0.0963,
+            0.1944,
+            0.0757,
+            0.0477,
+            0.3415,
+            -0.0692,
+            0.2126
+          ],
+          "negatives_skipped_same_page": 0
+        }
+      },
+      "note": "防守阵容编辑页左上角返回箭头，可用于兜底退出该子页面"
+    }
+  ],
+  "active_version": 1
+}

@@ -1,0 +1,38 @@
+buildscript {
+    repositories {
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url 'https://maven.aliyun.com/repository/central' }
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        // Chaquopy 16 通过 buildscript classpath 找 AGP；Flutter 默认只有 pluginManagement，
+        // 不加这一行会报 "Failed to find plugin com.android.tools.build:gradle"
+        classpath "com.android.tools.build:gradle:8.12.1"
+    }
+}
+
+plugins {
+    id "com.chaquo.python" version "16.1.0" apply false
+}
+
+allprojects {
+    repositories {
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url 'https://maven.aliyun.com/repository/central' }
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.buildDir = "../build"
+subprojects {
+    project.buildDir = "${rootProject.buildDir}/${project.name}"
+}
+subprojects {
+    project.evaluationDependsOn(":app")
+}
+
+tasks.register("clean", Delete) {
+    delete rootProject.buildDir
+}

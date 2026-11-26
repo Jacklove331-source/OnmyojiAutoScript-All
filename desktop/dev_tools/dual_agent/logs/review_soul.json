@@ -1,0 +1,9 @@
+[11:08:27] agent_a[anthropic/claude-sonnet-5-5/review] ok=True 359.3s ¥4.5255 in=6+cr69930+cw53931 out=48238
+[11:08:27] 任务 T-soul-equip-rate 需要返工（剩余 0 次）
+{
+ "task_key": "T-soul-equip-rate",
+ "phase": "pending",
+ "verdict": "REWORK",
+ "reviewer": "claude-sonnet-5-5",
+ "review_note": "调度器 diff 为空，是因为改动已被 autosave 提交（运行时和 settings 在 95e934b9，单测在 2b185c80）。我按这两个补丁和当前 HEAD 的代码审的，下面行号以当前 HEAD 为准。已确认没问题的部分：确认门槛没动（_wait_hand_card_removed 仍是同名数量减少，hand_operations.py:132-139）；识别阈值和 config 都没碰；_read_remaining_time 在真实类上存在（round_state.py:862，state_loop.py:50 覆写），时间保护不是死代码。但有 3 处必须改，请一轮改全：\n1) 重试绕过了 6s 保护。剩余时间只在 equip_souls_from_hand 循环顶读一次（hand_operations.py:1171-1185）。首拖加等待确认失败后，剩余时间已经缩水，而重试（L1280）正好落在最容易 mode_changed_after_drag 的窗口，等于把本任务要消除的失败原因放了回来。做法：把 L1171-1185 抽成小 helper（如 _soul_phase_time_ok()，保留 getattr 和异常容错，读不到按有时间处理，返回是否 >= SOUL_MIN_PHASE_REMAINING），循环顶和重试前各调一次。重试前时间不足就不拖第二次，skip_reasons['phase_too_short'] += 1 并记日志，然后走原有失败计数。\n2) 收窄重试触发条件，并封顶拖拽次数（L1280、L1324）。条件改为：not confirmed and self._is_preparation_mode() and hand_counts_after[selected['name']] == hand_counts_befo"
+}

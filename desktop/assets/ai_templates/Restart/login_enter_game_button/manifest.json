@@ -1,0 +1,63 @@
+{
+  "task": "Restart",
+  "name": "login_enter_game_button",
+  "versions": [
+    {
+      "version": 1,
+      "file": "Restart/login_enter_game_button/v001.png",
+      "created": 1794247338.4353006,
+      "created_text": "2026-11-10 02:02:18",
+      "source": "ai_auto",
+      "resolution": [
+        1280,
+        720
+      ],
+      "game_version": "",
+      "region": {
+        "x": 0.38,
+        "y": 0.78,
+        "w": 0.24,
+        "h": 0.09
+      },
+      "validation": {
+        "passed": true,
+        "reason": "ok",
+        "positive_min": 1.0,
+        "positive_avg": 1.0,
+        "negative_max": 0.448,
+        "false_positive_rate": 0.0,
+        "samples": 1,
+        "detail": {
+          "positive_scores": [
+            1.0
+          ],
+          "negative_scores": [
+            0.009,
+            0.1456,
+            -0.0002,
+            -0.1576,
+            -0.1812,
+            -0.0448,
+            -0.1883,
+            -0.0451,
+            -0.0141,
+            0.0042,
+            0.0301,
+            0.0906,
+            -0.0307,
+            0.1473,
+            0.1247,
+            0.0731,
+            0.0652,
+            -0.0966,
+            -0.0457,
+            -0.025
+          ],
+          "negatives_skipped_same_page": 0
+        }
+      },
+      "note": "底部中央的金色\"进入游戏\"按钮，用于识别登录界面"
+    }
+  ],
+  "active_version": 1
+}

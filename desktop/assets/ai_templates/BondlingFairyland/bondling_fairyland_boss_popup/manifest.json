@@ -1,0 +1,63 @@
+{
+  "task": "BondlingFairyland",
+  "name": "bondling_fairyland_boss_popup",
+  "versions": [
+    {
+      "version": 1,
+      "file": "BondlingFairyland/bondling_fairyland_boss_popup/v001.png",
+      "created": 1794301421.6764572,
+      "created_text": "2026-11-10 17:03:41",
+      "source": "ai_auto",
+      "resolution": [
+        1280,
+        720
+      ],
+      "game_version": "",
+      "region": {
+        "x": 0.3,
+        "y": 0.78,
+        "w": 0.42,
+        "h": 0.16
+      },
+      "validation": {
+        "passed": true,
+        "reason": "ok",
+        "positive_min": 1.0,
+        "positive_avg": 1.0,
+        "negative_max": 0.6213,
+        "false_positive_rate": 0.0,
+        "samples": 1,
+        "detail": {
+          "positive_scores": [
+            1.0
+          ],
+          "negative_scores": [
+            -0.0448,
+            -0.0109,
+            -0.0759,
+            -0.6568,
+            0.1789,
+            0.0954,
+            0.2539,
+            -0.302,
+            -0.3148,
+            -0.1398,
+            -0.2783,
+            0.2426,
+            -0.0007,
+            0.0061,
+            0.1914,
+            -0.2653,
+            -0.0836,
+            -0.1096,
+            0.0437,
+            0.2807
+          ],
+          "negatives_skipped_same_page": 0
+        }
+      },
+      "note": "首领发现弹窗底部两个按钮区域（稍后集结/立即集结）"
+    }
+  ],
+  "active_version": 1
+}

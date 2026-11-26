@@ -1,0 +1,63 @@
+{
+  "task": "AreaBoss",
+  "name": "area_boss_ready_btn",
+  "versions": [
+    {
+      "version": 1,
+      "file": "AreaBoss/area_boss_ready_btn/v001.png",
+      "created": 1793933663.8934767,
+      "created_text": "2026-11-06 10:54:23",
+      "source": "ai_auto",
+      "resolution": [
+        1280,
+        720
+      ],
+      "game_version": "",
+      "region": {
+        "x": 0.855,
+        "y": 0.73,
+        "w": 0.125,
+        "h": 0.145
+      },
+      "validation": {
+        "passed": true,
+        "reason": "ok",
+        "positive_min": 1.0,
+        "positive_avg": 1.0,
+        "negative_max": 0.1435,
+        "false_positive_rate": 0.0,
+        "samples": 1,
+        "detail": {
+          "positive_scores": [
+            1.0
+          ],
+          "negative_scores": [
+            0.0551,
+            -0.1079,
+            -0.1377,
+            -0.2126,
+            0.0831,
+            -0.01,
+            -0.0306,
+            0.0803,
+            -0.0781,
+            0.1276,
+            0.1243,
+            -0.0823,
+            -0.1354,
+            -0.1256,
+            0.0443,
+            0.1062,
+            -0.1045,
+            -0.1308,
+            0.0222,
+            0.1067
+          ],
+          "negatives_skipped_same_page": 0
+        }
+      },
+      "note": "右下角圆形『准备』按钮，浅黄底色配木槌图标，可作为区域BOSS准备态识别模板"
+    }
+  ],
+  "active_version": 1
+}

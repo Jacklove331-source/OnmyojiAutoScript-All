@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_service_label">OASX Mobile 执行层</string>
+    <string name="accessibility_service_description">用于免 Root 截图与点击/滑动，执行 OAS 自动化任务。仅在你主动开启时工作，不会上传任何屏幕内容。</string>
+</resources>

@@ -1,0 +1,313 @@
+{
+  "description": "Human-transcribed crops from 2026-10/11 game fault screenshots. NFKC and whitespace normalized; no live account settings.",
+  "cases": [
+    {
+      "file": "00.png",
+      "expected": "阴阳寮",
+      "source": "main",
+      "roi": [
+        540,
+        653,
+        88,
+        34
+      ]
+    },
+    {
+      "file": "01.png",
+      "expected": "商店",
+      "source": "main",
+      "roi": [
+        666,
+        652,
+        61,
+        35
+      ]
+    },
+    {
+      "file": "02.png",
+      "expected": "式神录",
+      "source": "main",
+      "roi": [
+        1107,
+        653,
+        83,
+        35
+      ]
+    },
+    {
+      "file": "03.png",
+      "expected": "好友",
+      "source": "main",
+      "roi": [
+        903,
+        652,
+        64,
+        34
+      ]
+    },
+    {
+      "file": "04.png",
+      "expected": "组队",
+      "source": "main",
+      "roi": [
+        444,
+        652,
+        55,
+        33
+      ]
+    },
+    {
+      "file": "05.png",
+      "expected": "阴阳术",
+      "source": "main",
+      "roi": [
+        999,
+        653,
+        64,
+        35
+      ]
+    },
+    {
+      "file": "06.png",
+      "expected": "98%",
+      "source": "abyss",
+      "roi": [
+        814,
+        369,
+        59,
+        45
+      ]
+    },
+    {
+      "file": "07.png",
+      "expected": "点击空白处关闭",
+      "source": "abyss",
+      "roi": [
+        555,
+        609,
+        177,
+        32
+      ]
+    },
+    {
+      "file": "08.png",
+      "expected": "进入游戏",
+      "source": "login",
+      "roi": [
+        549,
+        565,
+        174,
+        55
+      ]
+    },
+    {
+      "file": "09.png",
+      "expected": "3461万",
+      "source": "main",
+      "roi": [
+        527,
+        17,
+        101,
+        29
+      ]
+    },
+    {
+      "file": "10.png",
+      "expected": "11万",
+      "source": "main",
+      "roi": [
+        734,
+        17,
+        67,
+        29
+      ]
+    },
+    {
+      "file": "11.png",
+      "expected": "3.1万",
+      "source": "main",
+      "roi": [
+        917,
+        17,
+        76,
+        29
+      ]
+    },
+    {
+      "file": "12.png",
+      "expected": "今日挑战次数:2/2",
+      "source": "demon",
+      "roi": [
+        538,
+        66,
+        218,
+        37
+      ]
+    },
+    {
+      "file": "13.png",
+      "expected": "2/2",
+      "source": "demon",
+      "roi": [
+        703,
+        68,
+        45,
+        30
+      ]
+    },
+    {
+      "file": "14.png",
+      "expected": "0/4",
+      "source": "demon",
+      "roi": [
+        1206,
+        687,
+        48,
+        31
+      ]
+    },
+    {
+      "file": "15.png",
+      "expected": "首领",
+      "source": "demon",
+      "roi": [
+        992,
+        690,
+        59,
+        30
+      ]
+    },
+    {
+      "file": "16.png",
+      "expected": "队伍预设",
+      "source": "preset",
+      "roi": [
+        733,
+        84,
+        116,
+        36
+      ]
+    },
+    {
+      "file": "17.png",
+      "expected": "六道契灵",
+      "source": "preset",
+      "roi": [
+        1110,
+        119,
+        110,
+        38
+      ]
+    },
+    {
+      "file": "18.png",
+      "expected": "御魂副本",
+      "source": "preset",
+      "roi": [
+        1110,
+        190,
+        112,
+        36
+      ]
+    },
+    {
+      "file": "19.png",
+      "expected": "寮中活动",
+      "source": "preset",
+      "roi": [
+        1110,
+        260,
+        110,
+        35
+      ]
+    },
+    {
+      "file": "20.png",
+      "expected": "阵容",
+      "source": "preset",
+      "roi": [
+        1136,
+        332,
+        65,
+        35
+      ]
+    },
+    {
+      "file": "21.png",
+      "expected": "日常绘卷",
+      "source": "preset",
+      "roi": [
+        1111,
+        399,
+        114,
+        37
+      ]
+    },
+    {
+      "file": "22.png",
+      "expected": "突破道馆",
+      "source": "preset",
+      "roi": [
+        1110,
+        469,
+        113,
+        35
+      ]
+    },
+    {
+      "file": "23.png",
+      "expected": "斗技阵容",
+      "source": "preset",
+      "roi": [
+        1110,
+        538,
+        112,
+        36
+      ]
+    },
+    {
+      "file": "24.png",
+      "expected": "00:00:00",
+      "source": "card",
+      "roi": [
+        926,
+        262,
+        95,
+        31
+      ]
+    },
+    {
+      "file": "25.png",
+      "expected": "太鼓",
+      "source": "card",
+      "roi": [
+        809,
+        260,
+        60,
+        36
+      ]
+    },
+    {
+      "file": "26.png",
+      "expected": "斗鱼",
+      "source": "card",
+      "roi": [
+        304,
+        188,
+        59,
+        34
+      ]
+    },
+    {
+      "file": "27.png",
+      "expected": "50/10000",
+      "source": "card",
+      "roi": [
+        378,
+        638,
+        96,
+        27
+      ]
+    }
+  ]
+}

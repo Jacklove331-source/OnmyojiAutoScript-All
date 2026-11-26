@@ -1,0 +1,38 @@
+[
+  {
+    "itemName": "as_dragon_progress",
+    "roiFront": "220,355,80,73",
+    "roiBack": "220,355,80,73",
+    "mode": "Single",
+    "method": "Default",
+    "keyword": "",
+    "description": "区域卡片进度或封印状态；仅完整百分比且大于0时允许进入"
+  },
+  {
+    "itemName": "as_peacock_progress",
+    "roiFront": "513,355,80,73",
+    "roiBack": "513,355,80,73",
+    "mode": "Single",
+    "method": "Default",
+    "keyword": "",
+    "description": "区域卡片进度或封印状态；仅完整百分比且大于0时允许进入"
+  },
+  {
+    "itemName": "as_fox_progress",
+    "roiFront": "806,355,80,73",
+    "roiBack": "806,355,80,73",
+    "mode": "Single",
+    "method": "Default",
+    "keyword": "",
+    "description": "区域卡片进度或封印状态；仅完整百分比且大于0时允许进入"
+  },
+  {
+    "itemName": "as_leopard_progress",
+    "roiFront": "1098,355,80,73",
+    "roiBack": "1098,355,80,73",
+    "mode": "Single",
+    "method": "Default",
+    "keyword": "",
+    "description": "区域卡片进度或封印状态；仅完整百分比且大于0时允许进入"
+  }
+]
