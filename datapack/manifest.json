@@ -1,12 +1,12 @@
 {
-  "version": "2026.11.26.103348",
+  "version": "2026.11.26.103625",
   "source": "mobile",
-  "note": "use template+vertical-OCR courtyard detection for reliable 6/6 assets",
-  "updated_at": "2026-11-26T10:33:48",
+  "note": "match summon+activity courtyard lanterns and auto-expand scroll",
+  "updated_at": "2026-11-26T10:36:25",
   "file": "datapack/oas-patch.zip",
-  "size_bytes": 26372454,
+  "size_bytes": 26372540,
   "file_count": 3544,
-  "sha256": "97de91b3f4d7bc2aee818bba4ba5c2e1cc3ed071fc43ec64bc52236262427973",
+  "sha256": "e6ce9e3e9f64101e846201e4a46dbc6208cebab54950ae26a1421e879a05ff03",
   "apk": {
     "version_name": "0.3.4",
     "build_number": 79,

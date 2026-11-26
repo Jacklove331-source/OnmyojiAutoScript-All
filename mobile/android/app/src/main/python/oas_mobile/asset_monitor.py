@@ -303,8 +303,11 @@ def looks_courtyard(rows: list[dict]) -> bool:
         texts.append(text)
 
     joined = "".join(texts)
-    # 竖排灯笼常把「探」「索」拆成两行，或底部卷轴展开时含召唤/珍旅居/纳物库/式神录等庭院标志
+    # 竖排灯笼常把「探」「索」拆成两行，甚至漏掉其中一字；
+    # 全游戏只有庭院同时存在「召唤」与「活动/探/町/加成/珍旅居/纳物库」等灯笼标志。
     if "探" in joined and "索" in joined:
+        return True
+    if "召唤" in joined and any(kw in joined for kw in ("活动", "探", "町", "加成", "珍旅居", "纳物库", "式神录", "阴阳寮", "花合战")):
         return True
     courtyard_hits = sum(
         1 for kw in ("召唤", "加成", "珍旅居", "纳物库", "式神录", "阴阳寮", "花合战", "福运昌隆")

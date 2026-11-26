@@ -43,6 +43,12 @@ class TestAssetMonitor(unittest.TestCase):
             {"text": "索", "x": 666, "y": 138, "w": 30, "h": 30},
             {"text": "召唤", "x": 1084, "y": 178, "w": 30, "h": 50},
         ]))
+        # 卷轴收起且「索」漏识时，「召唤 + 活动」灯笼组合也能准确判为庭院
+        self.assertTrue(asset_monitor.looks_courtyard([
+            {"text": "探", "x": 664, "y": 105, "w": 30, "h": 30},
+            {"text": "召唤", "x": 1084, "y": 178, "w": 30, "h": 50},
+            {"text": "活动", "x": 1180, "y": 172, "w": 60, "h": 30},
+        ]))
         top = asset_monitor.extract_top_values(courtyard_rows)
         self.assertEqual([v["value"] for v in top], [26670000, 132, 20000])
 
