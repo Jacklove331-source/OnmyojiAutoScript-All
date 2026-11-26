@@ -13,6 +13,7 @@ INGAME_MARKERS = (
     "悬赏封印", "式神录", "阴阳术", "阴阳寮", "好友列表", "结界突破", "御魂副本",
     "式神图鉴", "收集奖励", "式神绘卷", "属性一览", "集体任务", "契灵之境",
     "觉醒材料", "秘闻副本", "狩猎战", "地域鬼王", "花合战", "神秘商店",
+    "点击式神区域进行配置", "观战式神配置",
 )
 # 町中（商店街）页面：上一个任务「退出商店」后游戏会停在这里，而这里既不是庭院也不是标题页。
 # 实测（+40 run 8743ac67…，03:21:36 帧）画面上的店铺名 OCR 可靠（寄售屋/秘魂屋/杂货铺/礼包屋…），
@@ -120,6 +121,7 @@ def _courtyard_entrance_visible(frame) -> bool:
 
 
 def _in_game_menu_visible(frame) -> bool:
+    from tasks.Component.GeneralBattle.assets import GeneralBattleAssets
     from tasks.GameUi.assets import GameUiAssets
     from tasks.KekkaiActivation.assets import KekkaiActivationAssets
     from tasks.KekkaiUtilize.assets import KekkaiUtilizeAssets
@@ -137,6 +139,8 @@ def _in_game_menu_visible(frame) -> bool:
         KekkaiUtilizeAssets.I_REALM_SHIN,
         KekkaiActivationAssets.I_A_CHECK_CARD,
         WantedQuestsAssets.I_WQSE_FIRE,
+        GeneralBattleAssets.I_PREPARE_HIGHLIGHT,
+        GeneralBattleAssets.I_PRESET,
     ))
 
 

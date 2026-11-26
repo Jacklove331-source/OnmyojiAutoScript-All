@@ -1,12 +1,12 @@
 {
-  "version": "2026.11.26.211753",
+  "version": "2026.11.26.213853",
   "source": "mobile",
-  "note": "热更修复: 区分探索退出弹窗(点确认不再鬼打墙)、Shizuku中途断连不推迟30分钟、降低战斗中弹窗OCR频率避免拖超时",
-  "updated_at": "2026-11-26T21:17:53",
+  "note": "热更修复: 锁阵容遇未锁战斗自动点准备按钮、Secret战斗等待兜底点准备、登录守卫识别战斗准备页不再8分钟超时",
+  "updated_at": "2026-11-26T21:38:53",
   "file": "datapack/oas-patch.zip",
-  "size_bytes": 26529213,
+  "size_bytes": 26529472,
   "file_count": 3576,
-  "sha256": "8ae8695a199d9511de365ff026296e771706a5dc724a13f7656b0f980ff3a225",
+  "sha256": "0317108b1175cfa0a0fb0a1163710d7c6cf70accdb2fb84acee21b8ae3f751d4",
   "apk": {
     "version_name": "0.3.5",
     "build_number": 83,

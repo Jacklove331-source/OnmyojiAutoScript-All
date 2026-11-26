@@ -712,6 +712,58 @@ class NavigationRecoveryTests(unittest.TestCase):
             task.run()
         self.assertEqual(called, ['save_touch_fish', 'broken_amulet:10', 'set_next_run', 'goto_main'])
 
+    def test_battle_prepare_clicks_highlight_even_when_lock_team_enabled(self):
+        from tasks.Component.GeneralBattle.general_battle import GeneralBattle
+        from tasks.Secret.script_task import ScriptTask as SecretTask
+
+        taps = []
+        in_real = {'v': False}
+        gb = GeneralBattle.__new__(GeneralBattle)
+        gb.current_count = 1
+        gb.screenshot = lambda: None
+        gb.is_in_real_battle = lambda *a: in_real['v']
+        gb.is_in_prepare = lambda *a: not in_real['v']
+        gb.I_DISABLE_7DAYS_DIFF_SOUL = object()
+        gb.I_CONFIRM_CLOSE_DIFF_SOUL = object()
+        gb.I_PREPARE_HIGHLIGHT = object()
+
+        def tap(rule, interval=0.8):
+            if rule is gb.I_PREPARE_HIGHLIGHT:
+                taps.append('prepare')
+                in_real['v'] = True
+                return True
+            return False
+
+        gb.appear_then_click = tap
+        cfg = SimpleNamespace(lock_team_enable=True, preset_enable=False, preset_group=1, preset_team=1)
+        self.assertTrue(gb.battle_before(None, cfg, timeout=2))
+        self.assertEqual(taps, ['prepare'])
+
+        # Secret.battle_wait 兜底同样能点掉准备按钮后正常等到胜利
+        sw_taps = []
+        stage = {'step': 0}
+        sec = SecretTask.__new__(SecretTask)
+        sec.device = SimpleNamespace(stuck_record_add=lambda *a: None, click_record_clear=lambda: None)
+        sec.I_PREPARE_HIGHLIGHT = object()
+        sec.I_SE_BATTLE_WIN = object()
+        sec.I_WIN = object()
+        sec.I_REWARD = object()
+        sec.I_FALSE = object()
+        sec.screenshot = lambda: None
+        sec.appear = lambda rule: rule is sec.I_SE_BATTLE_WIN and stage['step'] >= 1
+        sec.ui_click_until_disappear = lambda rule, **kw: sw_taps.append('win')
+
+        def sec_tap(rule, interval=1.5):
+            if rule is sec.I_PREPARE_HIGHLIGHT and stage['step'] == 0:
+                sw_taps.append('prepare')
+                stage['step'] = 1
+                return True
+            return False
+
+        sec.appear_then_click = sec_tap
+        self.assertTrue(sec.battle_wait(False))
+        self.assertEqual(sw_taps, ['prepare', 'win'])
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

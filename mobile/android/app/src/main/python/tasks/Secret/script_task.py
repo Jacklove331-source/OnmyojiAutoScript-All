@@ -261,6 +261,9 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, SecretAssets):
         logger.info("Start battle process")
         while 1:
             self.screenshot()
+            # 兜底：若战前 5s 超时或加载较慢导致进入 battle_wait 时仍停在准备页，直接点准备开打
+            if self.appear_then_click(self.I_PREPARE_HIGHLIGHT, interval=1.5):
+                continue
             if self.appear(self.I_SE_BATTLE_WIN):
                 logger.info('Win battle')
                 self.ui_click_until_disappear(self.I_SE_BATTLE_WIN, interval=2)
