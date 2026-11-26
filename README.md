@@ -1,6 +1,6 @@
-<img src="docs/assets/notice-personal-use.svg" alt="目前偏向个人使用，功能不完善，不定期修改；有兴趣的可以自己去修改完善" width="920">
+<img src="docs/assets/notice-personal-use.svg" alt="目前功能和UI 初期逐步优化中 不是很完善，有兴趣的可以自己去修改" width="920">
 
-> **🔴 目前偏向个人使用 · 功能不完善 · 不定期修改 —— 有兴趣的可以自己去修改完善**
+> **🔴 目前功能和UI 初期逐步优化中 不是很完善 —— 有兴趣的可以自己去修改**
 
 ---
 
