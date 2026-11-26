@@ -1,3 +1,10 @@
+<img src="docs/assets/notice-personal-use.svg" alt="目前偏向个人使用，功能不完善，不定期修改；有兴趣的可以自己去修改完善" width="920">
+
+> **🔴 目前偏向个人使用 · 功能不完善 · 不定期修改**
+> **有兴趣的可以自己去修改完善**
+
+---
+
 ![OnmyojiAutoScript 双端一体化仓库](docs/assets/banner.svg)
 
 > 一个把 **电脑端整合版（`desktop/`）** 与 **手机免 Root 后台独立运行版（`mobile/`）** 收录在同一仓库里的个人长期自用与维护工程。  

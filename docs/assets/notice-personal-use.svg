@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="104" viewBox="0 0 920 104" role="img" aria-label="目前偏向个人使用，功能不完善，不定期修改；有兴趣的可以自己去修改完善">
+  <title>仓库使用说明</title>
+  <rect x="0" y="0" width="920" height="104" rx="10" fill="#fff5f5" stroke="#e60012" stroke-width="2"/>
+  <text x="460" y="44" text-anchor="middle"
+        font-family="'Microsoft YaHei','PingFang SC','Noto Sans CJK SC','Source Han Sans SC',sans-serif"
+        font-size="28" font-weight="700" fill="#e60012">目前偏向个人使用 · 功能不完善 · 不定期修改</text>
+  <text x="460" y="82" text-anchor="middle"
+        font-family="'Microsoft YaHei','PingFang SC','Noto Sans CJK SC','Source Han Sans SC',sans-serif"
+        font-size="26" font-weight="700" fill="#e60012">有兴趣的可以自己去修改完善</text>
+</svg>
