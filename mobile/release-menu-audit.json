@@ -1,0 +1,531 @@
+{
+  "count": 62,
+  "rows": [
+    {
+      "task": "AbyssShadows",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 24,
+      "missing_assets": [
+        "tasks/AbyssShadows/res/res_open_abyss_shadows.png",
+        "tasks/AbyssShadows/res/res_ryou_abyss_shadows.png"
+      ]
+    },
+    {
+      "task": "ActivityShikigami",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 29,
+      "missing_assets": [
+        "tasks/ActivityShikigami/fire/fire_pass_10.png",
+        "tasks/ActivityShikigami/fire/fire_pass_11.png",
+        "tasks/ActivityShikigami/fire/fire_pass_8.png"
+      ]
+    },
+    {
+      "task": "AreaBoss",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 22,
+      "missing_assets": []
+    },
+    {
+      "task": "AutoCheckinBigGod",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 0,
+      "missing_assets": []
+    },
+    {
+      "task": "BondlingFairyland",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 54,
+      "missing_assets": []
+    },
+    {
+      "task": "BudokaiTournament",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 7,
+      "missing_assets": [
+        "tasks/BudokaiTournament/bt/bt_item_5.png",
+        "tasks/BudokaiTournament/bt/bt_item_6.png",
+        "tasks/BudokaiTournament/bt/bt_item_7.png"
+      ]
+    },
+    {
+      "task": "Chess",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 30,
+      "missing_assets": []
+    },
+    {
+      "task": "CollectiveMissions",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 14,
+      "missing_assets": []
+    },
+    {
+      "task": "DailyTrifles",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 16,
+      "missing_assets": []
+    },
+    {
+      "task": "Delegation",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 17,
+      "missing_assets": []
+    },
+    {
+      "task": "DemonEncounter",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 41,
+      "missing_assets": []
+    },
+    {
+      "task": "DemonRetreat",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 10,
+      "missing_assets": []
+    },
+    {
+      "task": "Dokan",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 61,
+      "missing_assets": []
+    },
+    {
+      "task": "DraftDuel",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 0,
+      "missing_assets": []
+    },
+    {
+      "task": "Duel",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 22,
+      "missing_assets": []
+    },
+    {
+      "task": "DyeTrials",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 5,
+      "missing_assets": []
+    },
+    {
+      "task": "EternitySea",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 8,
+      "missing_assets": []
+    },
+    {
+      "task": "EvoZone",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 11,
+      "missing_assets": []
+    },
+    {
+      "task": "ExperienceYoukai",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 1,
+      "missing_assets": []
+    },
+    {
+      "task": "Exploration",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 47,
+      "missing_assets": []
+    },
+    {
+      "task": "FallenSun",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 7,
+      "missing_assets": []
+    },
+    {
+      "task": "FindJade",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 0,
+      "missing_assets": []
+    },
+    {
+      "task": "FloatParade",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 21,
+      "missing_assets": []
+    },
+    {
+      "task": "FrogBoss",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 24,
+      "missing_assets": []
+    },
+    {
+      "task": "FrogChallenge",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 5,
+      "missing_assets": []
+    },
+    {
+      "task": "GoldYoukai",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 1,
+      "missing_assets": []
+    },
+    {
+      "task": "GoryouRealm",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 3,
+      "missing_assets": []
+    },
+    {
+      "task": "GuguArtStudio",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 10,
+      "missing_assets": []
+    },
+    {
+      "task": "GuildActivityMonitor",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 0,
+      "missing_assets": []
+    },
+    {
+      "task": "GuildBanquet",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 1,
+      "missing_assets": []
+    },
+    {
+      "task": "HeroTest",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 40,
+      "missing_assets": []
+    },
+    {
+      "task": "Hunt",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 10,
+      "missing_assets": []
+    },
+    {
+      "task": "Hyakkiyakou",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 69,
+      "missing_assets": []
+    },
+    {
+      "task": "IbukiArena",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 5,
+      "missing_assets": []
+    },
+    {
+      "task": "KekkaiActivation",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 39,
+      "missing_assets": [
+        "tasks/KekkaiActivation/a/a_a_cards_realm.png"
+      ]
+    },
+    {
+      "task": "KekkaiUtilize",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 52,
+      "missing_assets": []
+    },
+    {
+      "task": "KittyShop",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 16,
+      "missing_assets": []
+    },
+    {
+      "task": "LBS",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 11,
+      "missing_assets": []
+    },
+    {
+      "task": "MartialArts",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 21,
+      "missing_assets": []
+    },
+    {
+      "task": "MemoryScrolls",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 13,
+      "missing_assets": []
+    },
+    {
+      "task": "MetaDemon",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 34,
+      "missing_assets": []
+    },
+    {
+      "task": "MysteryShop",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 20,
+      "missing_assets": [
+        "tasks/MysteryShop/ms/ms_ms_check_exp.png",
+        "tasks/MysteryShop/ms/ms_ms_check_taiko_6.png",
+        "tasks/MysteryShop/ms/ms_ms_exp.png",
+        "tasks/MysteryShop/ms/ms_ms_taiko_6.png"
+      ]
+    },
+    {
+      "task": "Nian",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 3,
+      "missing_assets": []
+    },
+    {
+      "task": "Orochi",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 12,
+      "missing_assets": []
+    },
+    {
+      "task": "OrochiMoans",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 0,
+      "missing_assets": []
+    },
+    {
+      "task": "OtherWorldTwilight",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 5,
+      "missing_assets": []
+    },
+    {
+      "task": "Pets",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 8,
+      "missing_assets": []
+    },
+    {
+      "task": "Quiz",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 6,
+      "missing_assets": []
+    },
+    {
+      "task": "RealmRaid",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 23,
+      "missing_assets": []
+    },
+    {
+      "task": "Restart",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 51,
+      "missing_assets": [
+        "tasks/Restart/login/login_scroll_close_area.png"
+      ]
+    },
+    {
+      "task": "RichMan",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 110,
+      "missing_assets": []
+    },
+    {
+      "task": "RyouToppa",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 16,
+      "missing_assets": []
+    },
+    {
+      "task": "Secret",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 7,
+      "missing_assets": []
+    },
+    {
+      "task": "SixRealms",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 53,
+      "missing_assets": [
+        "tasks/SixRealms/gate1/gate1_skill103.png",
+        "tasks/SixRealms/gate1/gate1_skill104.png",
+        "tasks/SixRealms/l104/l104_npc_common.png"
+      ]
+    },
+    {
+      "task": "Sougenbi",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 8,
+      "missing_assets": []
+    },
+    {
+      "task": "SoulsTidy",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 21,
+      "missing_assets": []
+    },
+    {
+      "task": "Tako",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 0,
+      "missing_assets": []
+    },
+    {
+      "task": "TalismanPass",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 14,
+      "missing_assets": []
+    },
+    {
+      "task": "TrueOrochi",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 15,
+      "missing_assets": []
+    },
+    {
+      "task": "WantedQuests",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 41,
+      "missing_assets": [
+        "tasks/WantedQuests/invite/invite_wq_friend_1.png",
+        "tasks/WantedQuests/invite/invite_wq_friend_2.png",
+        "tasks/WantedQuests/invite/invite_wq_friend_3.png",
+        "tasks/WantedQuests/invite/invite_wq_friend_4.png",
+        "tasks/WantedQuests/invite/invite_wq_friend_5.png"
+      ]
+    },
+    {
+      "task": "WeeklyPurchase",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 101,
+      "missing_assets": []
+    },
+    {
+      "task": "WeeklyTrifles",
+      "has_config": true,
+      "import_ok": true,
+      "import_error": "",
+      "asset_refs": 29,
+      "missing_assets": []
+    }
+  ]
+}

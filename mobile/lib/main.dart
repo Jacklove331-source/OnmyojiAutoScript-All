@@ -19,6 +19,7 @@ import 'package:oasx/config/theme.dart' show lightTheme, darkTheme;
 
 // 新前端（阴阳师庭院皮肤 · 4 页签纯人物底栏）开关
 import 'package:oasx/ui/api.dart';
+import 'package:oasx/ui/avatar_store.dart';
 import 'package:oasx/ui/shell.dart';
 import 'package:oasx/ui/skin_store.dart';
 import 'package:oasx/ui/theme.dart' as ui;
@@ -38,6 +39,11 @@ void main() async {
   if (kUseNewUi) {
     await OasApi.i.loadActiveConfig();
     await OasSkinController.i.load();
+    // 头像单例：启动时读一次盘，庭院账户卡与「我的」页之后只订阅它的 state。
+    // load() 内部已兜底，这里再包一层，任何异常都不许挡住 runApp。
+    try {
+      await OasAvatarStore.i.load();
+    } catch (_) {}
     runApp(const OasApp());
     return;
   }

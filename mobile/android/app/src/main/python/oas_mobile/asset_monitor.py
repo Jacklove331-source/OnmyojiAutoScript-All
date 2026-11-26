@@ -1011,32 +1011,63 @@ def refresh_assets(
             _STATUS["phase"] = ""
 
 
-def refresh_async(
+ASSET_REFRESH_SKIP_TASKS = frozenset({
+    # 重启任务结束意味着游戏被拉回/重开，此刻采资产只会拍到加载页，而且下一个任务马上接管。
+    "Restart",
+})
+
+# 每跑完这么多个任务刷新一次资产（用户口径 2026-11-26：三个任务一次）。
+ASSET_REFRESH_EVERY = 3
+
+# 距离上次刷新的任务数（进程内计数；App 重启归零，只会让下一次刷新稍晚，无害）。
+_TASKS_SINCE_REFRESH = 0
+
+
+def refresh_after_task(
     workspace: str,
     config: str = "oas1",
-    force: bool = False,
+    task_name: str = "",
+    every: int = ASSET_REFRESH_EVERY,
 ) -> dict[str, Any]:
-    """Trigger refresh_assets on a background daemon thread."""
+    """任务结束后的自动资产刷新（同步调用；调用方自己决定放不放线程里）。
+
+    每攒够 `every` 个任务刷新一次；`ASSET_REFRESH_SKIP_TASKS` 里的任务（重启）不刷新也不计数。
+    """
+    global _TASKS_SINCE_REFRESH
+    name = str(task_name or "")
+    if not name:
+        return {"ok": True, "started": False, "reason": "no_task"}
+    threshold = max(1, int(every))
     with _LOCK:
+        if name in ASSET_REFRESH_SKIP_TASKS:
+            return {"ok": True, "started": False, "reason": "skip_task", "task": name,
+                    "count": _TASKS_SINCE_REFRESH, "every": threshold}
+        _TASKS_SINCE_REFRESH += 1
+        if _TASKS_SINCE_REFRESH < threshold:
+            return {"ok": True, "started": False, "reason": "counting", "task": name,
+                    "count": _TASKS_SINCE_REFRESH, "every": threshold}
         if _STATUS["running"]:
+            _TASKS_SINCE_REFRESH = 0
             return {"ok": True, "started": False, "busy": True}
-
-    def _run() -> None:
-        refresh_assets(workspace, config=config, force=force)
-
-    threading.Thread(target=_run, name="oas-asset-refresh", daemon=True).start()
-    return {"ok": True, "started": True}
-
-
-def maybe_refresh_after_daily_tasks(
-    workspace: str,
-    config: str = "oas1",
-) -> dict[str, Any]:
-    """Hook called by scheduler once all due tasks finish; runs at most once per day."""
+        _TASKS_SINCE_REFRESH = 0
+    # 注意：绝不能在这里提前把 _STATUS["running"] 置 True，否则紧接着调用
+    # refresh_assets() 时它内部检测到 running==True 会直接返回 busy，导致永远无法刷新。
     try:
-        if already_updated_today(workspace, config):
-            return {"ok": True, "skipped": True, "reason": "already_updated_today"}
-        return refresh_assets(workspace, config=config, force=False)
+        result = refresh_assets(workspace, config=config, force=True)
+        if result.get("busy"):
+            return {"ok": True, "started": False, "busy": True, "task": name}
+        snap = result.get("snapshot") if isinstance(result.get("snapshot"), dict) else {}
+        return {
+            "ok": bool(result.get("ok", True)),
+            "started": True,
+            "task": name,
+            "every": threshold,
+            "error": str(result.get("error") or ""),
+            "snapshot_updated_at": str(snap.get("captured_at") or snap.get("updated_at") or ""),
+        }
     except Exception as exc:  # noqa: BLE001
-        return {"ok": False, "error": repr(exc)}
-
+        with _LOCK:
+            _STATUS["last_error"] = f"{type(exc).__name__}: {exc}"
+            _STATUS["running"] = False
+            _STATUS["phase"] = ""
+        return {"ok": False, "started": True, "task": name, "error": repr(exc)}

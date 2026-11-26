@@ -77,7 +77,6 @@ class MainActivity : FlutterActivity() {
     private fun openSystemPage(page: String): Boolean {
         return try {
             val intent = when (page) {
-                "accessibility" -> Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
                 "notification" -> Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
                     .putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
                 "app_detail" -> Intent(
@@ -158,7 +157,6 @@ class MainActivity : FlutterActivity() {
         }.start()
     }
 
-    /** 供后续 UI 调用：跳系统设置打开无障碍服务。 */
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == HiddenDisplay.REQUEST_CODE) {
@@ -167,9 +165,6 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    fun openAccessibilitySettings() {
-        startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-    }
 
     companion object {
         private const val TAG = "OasPython"

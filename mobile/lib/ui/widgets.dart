@@ -497,52 +497,6 @@ class OasStatCell extends StatelessWidget {
   }
 }
 
-/// 据点四宫格里的一格
-class OasQuickTile extends StatelessWidget {
-  const OasQuickTile({
-    super.key,
-    required this.icon,
-    required this.label,
-    this.iconColor,
-    this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final Color? iconColor;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final OasPalette p = context.oas;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Container(
-            width: 36,
-            height: 36,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: p.surface,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: p.line),
-            ),
-            child: Icon(icon, size: 17, color: iconColor ?? p.gold),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            style: TextStyle(fontSize: 11, color: p.inkSoft, height: 1.1),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 /// 列表行：官方头像徽记 + 主副标题 + 右侧尾部
 class OasRowItem extends StatelessWidget {
   const OasRowItem({

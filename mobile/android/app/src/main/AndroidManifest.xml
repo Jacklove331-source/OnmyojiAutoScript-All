@@ -71,20 +71,6 @@
             android:exported="false"
             android:foregroundServiceType="mediaProjection" />
 
-        <!-- 免 Root 执行层：无障碍服务（API30+ 截图 + 手势）。需用户在系统设置里手动开启。 -->
-        <service
-            android:name=".OasAccessibilityService"
-            android:exported="true"
-            android:label="@string/accessibility_service_label"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
-            </intent-filter>
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/oas_accessibility_config" />
-        </service>
-
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />

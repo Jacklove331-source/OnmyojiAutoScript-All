@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../api.dart';
+import '../avatar_picker.dart';
 import '../avatar_store.dart';
 import '../safety.dart';
 import '../system_ui.dart';
@@ -27,16 +28,13 @@ class _MePageState extends State<MePage> {
   Map<String, dynamic>? _sched;
   bool _loading = true;
   String? _error;
-  OasAvatar _avatar = OasAvatar.all.first;
 
   @override
   void initState() {
     super.initState();
     _load();
-    // 头像样式：内置几款字符头像，存在 app 私有目录，不碰相册权限
-    OasAvatarStore.load().then((OasAvatar value) {
-      if (mounted) setState(() => _avatar = value);
-    });
+    // 头像由 OasAvatarStore 单例在启动时读盘，本页只订阅它的 state，
+    // 所以「我的」页与庭院账户卡永远是同一张头像。
     // 读一次「托管上限」，否则设置过的值要等点开对话框才显示
     OasSafety.i.load().then((_) {
       if (mounted) setState(() {});
@@ -93,7 +91,6 @@ class _MePageState extends State<MePage> {
     return '累计 $rounds 轮 · 当前$running';
   }
 
-  bool get _accessibilityOk => _health?['accessibility_ready'] == true;
 
   bool get _backgroundOk => _health?['background_service'] == true;
 
@@ -190,73 +187,66 @@ class _MePageState extends State<MePage> {
   }
 
   Widget _profileCard(BuildContext context, OasPalette p) {
-    return OasCard(
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: <Color>[p.surface, p.surfaceAlt],
-      ),
-      child: Row(
-        children: <Widget>[
-          Container(
-            width: 52,
-            height: 52,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: p.surfaceAlt.withOpacity(0.45),
-              border: Border.all(color: p.gold.withOpacity(0.65), width: 1.5),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(2),
-              child: Image.asset(
-                'assets/onmyoji/dock_me.png',
-                fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => Text(
-                  _avatar.char,
-                  style: TextStyle(
-                    fontFamily: OasFont.serif,
-                    fontFamilyFallback: OasFont.serifFallback,
-                    fontSize: 20,
-                    height: 1,
-                    fontWeight: FontWeight.w700,
-                    color: p.goldHi,
-                  ),
+    return ValueListenableBuilder<OasAvatar>(
+      valueListenable: OasAvatarStore.i.state,
+      builder: (BuildContext context, OasAvatar avatar, Widget? _) {
+        return OasCard(
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: <Color>[p.surface, p.surfaceAlt],
+          ),
+          child: Row(
+            children: <Widget>[
+              OasAvatarBadge(
+                size: 52,
+                borderColor: p.gold.withOpacity(0.65),
+                borderWidth: 1.5,
+                onTap: () => showOasAvatarPicker(context),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: _editNickname,
+                      child: ValueListenableBuilder<String>(
+                        valueListenable: OasAvatarStore.i.nickname,
+                        builder: (BuildContext context, String nick, Widget? _) {
+                          // 只显示称呼本身：配置名与铅笔图标都去掉，点名字即可改。
+                          return Text(
+                            OasAvatarStore.displayName(avatar, nick),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: OasFont.song(size: 16, color: p.ink),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _profileLine,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 11, color: p.inkDim),
+                    ),
+                  ],
                 ),
               ),
-            ),
+              const SizedBox(width: 8),
+              OasPill(
+                text: '改头像',
+                color: p.inkSoft,
+                outlined: true,
+                onTap: () => showOasAvatarPicker(context),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  '晴明大人 · ${OasApi.i.activeConfig}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: OasFont.song(size: 16, color: p.ink),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _profileLine,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 11, color: p.inkDim),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          OasPill(
-            text: '改头像',
-            color: p.inkSoft,
-            outlined: true,
-            onTap: _pickAvatar,
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -453,7 +443,6 @@ class _MePageState extends State<MePage> {
   Widget _permissionCard(BuildContext context, OasPalette p) {
     final ({bool binder, bool permission, String backend}) shz = _shizuku;
     final bool shzOk = shz.binder && shz.permission;
-    final bool a11yOk = _accessibilityOk;
     final bool bgOk = _backgroundOk;
 
     final List<({String title, String subtitle, String status, bool ok, bool required})> rows =
@@ -478,15 +467,6 @@ class _MePageState extends State<MePage> {
           status: bgOk ? '正常' : '去设置',
           ok: bgOk,
           required: true,
-        ),
-        (
-          title: '无障碍服务（可选）',
-          subtitle: a11yOk
-              ? '已开启（备用）'
-              : (shzOk ? '已由 Shizuku 接管，无需开启' : '仅无 Shizuku 时备用'),
-          status: a11yOk ? '已开启' : '可选',
-          ok: a11yOk || shzOk,
-          required: false,
         ),
       ],
     ];
@@ -569,8 +549,7 @@ class _MePageState extends State<MePage> {
                       }
                       final String page = switch (rows[i].title) {
                         'Shizuku' => 'shizuku',
-                        '无障碍服务（可选）' || '无障碍服务' => 'accessibility',
-                        '后台保活' => 'notification',
+                                      '后台保活' => 'notification',
                         _ => '',
                       };
                       if (page.isEmpty) return;
@@ -698,77 +677,59 @@ class _MePageState extends State<MePage> {
     OasToast.show(context, '已切换到 $picked，下次启动托管就用它');
   }
 
-  Future<void> _pickAvatar() async {
-    await showModalBottomSheet<void>(
+  /// 改称呼：点「我的」页账户卡上的名字就能改，留空则回到「<头像名>大人」。
+  Future<void> _editNickname() async {
+    final OasAvatarStore store = OasAvatarStore.i;
+    final TextEditingController controller =
+        TextEditingController(text: store.nickname.value);
+    final String? result = await showDialog<String>(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
-      ),
-      builder: (BuildContext c) {
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(18, 16, 18, 22),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              const Text('选择头像',
-                  style:
-                      TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 4),
-              const Text('内置字符头像，不需要相册权限、不会弹授权框',
-                  style: TextStyle(fontSize: 11)),
-              const SizedBox(height: 14),
-              Row(
-                children: <Widget>[
-                  for (final OasAvatar item in OasAvatar.all) ...<Widget>[
-                    Expanded(
-                      child: InkWell(
-                        onTap: () async {
-                          final bool ok = await OasAvatarStore.save(item);
-                          if (!c.mounted) return;
-                          Navigator.of(c).pop();
-                          if (ok) setState(() => _avatar = item);
-                          if (!mounted) return;
-                          OasToast.show(context,
-                              ok ? '头像已换成「${item.label}」' : '保存失败，请重试');
-                        },
-                        child: Column(
-                          children: <Widget>[
-                            Container(
-                              width: 52,
-                              height: 52,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: item.id == _avatar.id
-                                    ? const Color(0xFF3A2A22)
-                                    : const Color(0xFFEDE3D4),
-                              ),
-                              child: Text(
-                                item.char,
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w700,
-                                  color: item.id == _avatar.id
-                                      ? const Color(0xFFE8C87A)
-                                      : const Color(0xFF6B5B4A),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(item.label,
-                                style: const TextStyle(fontSize: 11)),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
+      builder: (BuildContext c) => AlertDialog(
+        backgroundColor: context.oas.surface,
+        title: Text('改称呼',
+            style: OasFont.song(
+                size: 16, color: context.oas.ink, weight: FontWeight.w700)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            TextField(
+              controller: controller,
+              autofocus: true,
+              maxLength: 12,
+              style: TextStyle(fontSize: 14, color: context.oas.ink),
+              decoration: InputDecoration(
+                isDense: true,
+                hintText: '留空 = ${OasAvatarStore.displayName(store.current, '')}',
+                hintStyle:
+                    TextStyle(fontSize: 12, color: context.oas.inkDim),
               ),
-            ],
+            ),
+            Text('将显示在「我的」页头像旁，留空恢复默认称呼',
+                style: TextStyle(fontSize: 10.5, color: context.oas.inkDim)),
+          ],
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(c).pop(),
+            child: Text('取消', style: TextStyle(color: context.oas.inkSoft)),
           ),
-        );
-      },
+          TextButton(
+            onPressed: () => Navigator.of(c).pop(controller.text),
+            child: Text('保存', style: TextStyle(color: context.oas.vermilion)),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (result == null || !mounted) return;
+    final bool ok = await store.setNickname(result);
+    if (!mounted) return;
+    OasToast.show(
+      context,
+      ok
+          ? '称呼已改为「${OasAvatarStore.displayName(store.current, store.nickname.value)}」'
+          : '保存失败，称呼未改',
     );
   }
 

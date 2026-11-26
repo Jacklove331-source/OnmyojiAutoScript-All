@@ -102,6 +102,19 @@ class OasApi {
   /// AI 自愈状态：enabled / mode / model / has_key（不要把 Key 读出来）。
   Future<Map<String, dynamic>> aiHealth() => _getJson('/ai/health');
 
+  /// AI 自愈历史：`/ai/recovery?limit=N`。老后端没有这条路由，失败就返回空页，
+  /// 不让首页跟着报错。
+  Future<OasAiRecovery> aiRecovery({int limit = 50}) async {
+    try {
+      final Map<String, dynamic> j =
+          await _getJson('/ai/recovery?limit=$limit&config=$activeConfig');
+      if (j['ok'] == false) return OasAiRecovery.empty;
+      return OasAiRecovery.fromJson(j);
+    } catch (_) {
+      return OasAiRecovery.empty;
+    }
+  }
+
   /// AI 自愈配置（含 Key 是否已配，不回显 Key）。
   Future<Map<String, dynamic>> aiConfig() => _getJson('/ai/config');
 
@@ -128,23 +141,6 @@ class OasApi {
       return await _getJson('/assets/snapshot?config=$cfg');
     } catch (_) {
       return <String, dynamic>{};
-    }
-  }
-
-  /// 手动触发一次只读 OCR 资产巡检。
-  Future<Map<String, dynamic>> assetsRefresh(
-      {String? config, bool force = true}) async {
-    final String cfg = Uri.encodeQueryComponent(config ?? activeConfig);
-    try {
-      final Response<String> r = await _dio.post<String>(
-        '/assets/refresh?config=$cfg&force=${force ? 1 : 0}',
-      );
-      final Object? decoded = jsonDecode(r.data ?? '{}');
-      return decoded is Map<String, dynamic>
-          ? decoded
-          : <String, dynamic>{'ok': false, 'error': 'bad response'};
-    } catch (error) {
-      return <String, dynamic>{'ok': false, 'error': '$error'};
     }
   }
 
@@ -607,6 +603,147 @@ class OasTask {
   final String title;
 }
 
+/// AI 自愈的一次记录（后端读 log/ai_recovery/incidents/<ts>_<id>/{anomaly,result}.json）。
+class OasAiIncident {
+  const OasAiIncident({
+    required this.id,
+    required this.at,
+    required this.task,
+    required this.type,
+    required this.outcome,
+    required this.message,
+    required this.cause,
+    required this.detail,
+    required this.aiCalled,
+    required this.verified,
+    required this.tokens,
+    required this.costCny,
+    required this.actions,
+    required this.actionsOk,
+  });
+
+  final String id;
+  final String at;
+  final String task;
+  final String type;
+  final String outcome;
+  final String message;
+  final String cause;
+  final String detail;
+  final bool aiCalled;
+  final bool verified;
+  final int tokens;
+  final double costCny;
+  final int actions;
+  final int actionsOk;
+
+  /// 后端字段可能缺失或类型漂移（历史文件是外部写的），这里全部兜底。
+  factory OasAiIncident.fromJson(Map<String, dynamic> j) {
+    int asInt(Object? v) {
+      if (v is num) return v.toInt();
+      return int.tryParse('${v ?? ''}') ?? 0;
+    }
+
+    double asDouble(Object? v) {
+      if (v is num) return v.toDouble();
+      return double.tryParse('${v ?? ''}') ?? 0.0;
+    }
+
+    String asStr(Object? v) => v == null ? '' : '$v';
+
+    return OasAiIncident(
+      id: asStr(j['id']),
+      at: asStr(j['at']),
+      task: asStr(j['task']),
+      type: asStr(j['type']),
+      outcome: asStr(j['outcome']).isEmpty ? 'unknown' : asStr(j['outcome']),
+      message: asStr(j['message']),
+      cause: asStr(j['cause']),
+      detail: asStr(j['detail']),
+      aiCalled: j['ai_called'] == true,
+      verified: j['verified'] == true,
+      tokens: asInt(j['tokens']),
+      costCny: asDouble(j['cost_cny']),
+      actions: asInt(j['actions']),
+      actionsOk: asInt(j['actions_ok']),
+    );
+  }
+
+  String get outcomeLabel => switch (outcome) {
+        'recovered' => '已自愈',
+        'needs_human' => '需人工',
+        'stopped' => '已停下',
+        _ => '未记录结果',
+      };
+
+  String get headline {
+    final String who = task.isEmpty ? type : task;
+    if (cause.isNotEmpty) return '$who · $cause';
+    if (message.isNotEmpty) return '$who · $message';
+    return who.isEmpty ? '异常' : who;
+  }
+}
+
+/// `/ai/recovery` 的整页结果：summary 统计**全量**记录，incidents 只带前 N 条。
+class OasAiRecovery {
+  const OasAiRecovery({
+    required this.total,
+    required this.recovered,
+    required this.needsHuman,
+    required this.stopped,
+    required this.aiCalls,
+    required this.costCny,
+    required this.incidents,
+  });
+
+  final int total;
+  final int recovered;
+  final int needsHuman;
+  final int stopped;
+  final int aiCalls;
+  final double costCny;
+  final List<OasAiIncident> incidents;
+
+  static const OasAiRecovery empty = OasAiRecovery(
+    total: 0,
+    recovered: 0,
+    needsHuman: 0,
+    stopped: 0,
+    aiCalls: 0,
+    costCny: 0,
+    incidents: <OasAiIncident>[],
+  );
+
+  factory OasAiRecovery.fromJson(Map<String, dynamic> j) {
+    int asInt(Object? v) {
+      if (v is num) return v.toInt();
+      return int.tryParse('${v ?? ''}') ?? 0;
+    }
+
+    final Map<String, dynamic> summary =
+        j['summary'] is Map ? Map<String, dynamic>.from(j['summary'] as Map) : <String, dynamic>{};
+    final List<OasAiIncident> list = <OasAiIncident>[
+      if (j['entries'] is List)
+        for (final Object? item in j['entries'] as List)
+          if (item is Map) OasAiIncident.fromJson(Map<String, dynamic>.from(item)),
+    ];
+    return OasAiRecovery(
+      total: asInt(summary['total']).clamp(0, 1 << 30),
+      recovered: asInt(summary['recovered']),
+      needsHuman: asInt(summary['needs_human']),
+      stopped: asInt(summary['stopped']),
+      aiCalls: asInt(summary['ai_calls']),
+      costCny: (summary['cost_cny'] is num)
+          ? (summary['cost_cny'] as num).toDouble()
+          : double.tryParse('${summary['cost_cny'] ?? ''}') ?? 0.0,
+      incidents: list,
+    );
+  }
+
+  bool get isEmpty => total == 0 && incidents.isEmpty;
+}
+
+
 class OasArgGroup {
   OasArgGroup({required this.key, required this.title, required this.fields});
 
@@ -614,8 +751,24 @@ class OasArgGroup {
   final String title;
   final List<OasArgField> fields;
 
-  /// 调度组是电脑式的 8 个字段，手机上默认折叠。
-  bool get isAdvanced => key == 'scheduler';
+  /// 手机端收进「高级」的组：只剩调度器。
+  static const Set<String> kAdvancedArgGroups = <String>{'scheduler'};
+
+  /// 电脑专属、手机端**完全不显示**的组（用户要求去掉）：
+  /// device 模拟器 / desktop 桌面版 / auto_lineup 自动阵容 / roster_scan 式神池扫描 / workbench 工作台。
+  static const Set<String> kHiddenArgGroups = <String>{
+    'device',
+    'desktop',
+    'auto_lineup',
+    'roster_scan',
+    'workbench',
+  };
+
+  /// 这些组默认折叠进「高级」。
+  bool get isAdvanced => kAdvancedArgGroups.contains(key);
+
+  /// 电脑专属组：手机参数页直接不渲染。
+  bool get isHidden => kHiddenArgGroups.contains(key);
 }
 
 class OasArgField {

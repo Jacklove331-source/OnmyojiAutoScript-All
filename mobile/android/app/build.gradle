@@ -76,7 +76,7 @@ chaquopy {
 
     defaultConfig {
         version = "3.10"
-        buildPython(System.getenv("OAS_BUILD_PYTHON") ?: "python")
+        buildPython "D:/3D/YYS2/OnmyojiAutoScript-easy-install-1/toolkit/python.exe"
         pip {
             // chaquo.com 在本机直连很慢（ReadTimeout）→ 先把 x86_64/cp310 wheel 下到本地，
             // 用 --find-links 让 pip 从本地装，构建不再受网络影响。

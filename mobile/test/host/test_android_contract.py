@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import os
 import pathlib
 import sys
 import threading
@@ -243,6 +244,41 @@ class DeviceTests(unittest.TestCase):
         self.assertEqual(len(self.taps), 9)
 
 
+class ScriptMenuTests(unittest.TestCase):
+    """菜单只列真能跑的任务：task_runner 严格按 tasks.<Name>.script_task 加载。"""
+
+    def test_menu_only_lists_tasks_with_a_script_task_module(self):
+        import oas_mobile
+        from oas_mobile import server as srv
+
+        menu = srv._script_menu()
+        base = os.path.join(os.path.dirname(oas_mobile.__file__), "..", "tasks")
+        base = os.path.normpath(base)
+        # Script / GlobalGame 是设置面板（没有执行体也不单独跑），其余都必须有 script_task.py
+        settings_only = {"Script", "GlobalGame"}
+        missing = [
+            name for name in menu["Tasks"]
+            if name not in settings_only and not os.path.isfile(os.path.join(base, name, "script_task.py"))
+        ]
+        self.assertEqual(missing, [], f"菜单里有跑不起来的任务: {missing}")
+
+    def test_menu_drops_duplicate_task_and_keeps_requested_ones(self):
+        from oas_mobile import server as srv
+
+        menu = srv._script_menu()
+        # 用户口径（2026-11-26）：魂土与八岐大蛇完全一致 → 只留一份
+        self.assertNotIn("OrochiMoans", menu["Tasks"], "魂土与 Orochi 重复，不该再列")
+        self.assertIn("OrochiMoans", srv.MOBILE_HIDDEN_TASKS)
+        # 大神签到要保留（可在清单里），但手机端跑不了的原因仍要能查到
+        self.assertIn("AutoCheckinBigGod", menu["Tasks"], "用户要求保留大神签到")
+        self.assertIn("AutoCheckinBigGod", menu["unsupported"])
+        self.assertIn("Script", menu["Tasks"], "Script 是设置面板，需要保留")
+        # 2026-11-26 晚：前往庭院是纯空壳（只 goto_page），用电脑端「全局配置」顶掉
+        self.assertNotIn("GotoMain", menu["Tasks"], "前往庭院是空壳，不该再列")
+        self.assertIn("GotoMain", srv.MOBILE_HIDDEN_TASKS)
+        self.assertIn("GlobalGame", menu["Tasks"], "全局配置要在手机端可改")
+
+
 class ServerTests(unittest.TestCase):
     def setUp(self):
         import oas_mobile
@@ -280,10 +316,11 @@ class ServerTests(unittest.TestCase):
         self.assertIn('already running', self.server.start(self.port))
         self.assertTrue(self.request('/health')['ok'])
 
-    def test_health_recognizes_shizuku_without_accessibility(self):
+    def test_health_treats_shizuku_as_the_only_execution_layer(self):
+        # 2026-11-26：无障碍执行层已删除，/health 不再报 accessibility_ready
         health = self.request('/health')
         self.assertTrue(health['bridge_available'])
-        self.assertFalse(health['accessibility_ready'])
+        self.assertNotIn('accessibility_ready', health)
 
     def test_config_task_state_is_scoped_to_selected_config(self):
         self.assertTrue(self.request('/config_tasks?config=oas3')['tasks'][0]['enabled'])
@@ -416,6 +453,37 @@ class ServerTests(unittest.TestCase):
         bridge_mod.vdstream_capture = lambda quality=85: b'\xff\xd8fake-jpeg\xff\xd9'
         bridge_mod._capture_to_file = lambda disp: (_ for _ in ()).throw(AssertionError('should not call screencap'))
         self.assertEqual(bridge_mod.display_screenshot(4), b'\xff\xd8fake-jpeg\xff\xd9')
+
+    def test_ai_recovery_route_and_costume_enum_chinese_options(self):
+        from tempfile import TemporaryDirectory
+        with TemporaryDirectory() as tmp:
+            self.server._workspace = lambda: tmp
+            rec = self.request('/ai/recovery?limit=10&config=oas1')
+            self.assertTrue(rec['ok'])
+            self.assertEqual(rec['total'], 0)
+
+        from tasks.Component.Costume.assets import CostumeAssets
+        ca = CostumeAssets()
+        for attr in ('I_REALM_SHIN_6', 'I_SHI_CARD_6', 'I_SHI_GROWN_6', 'I_SHI_DEFENSE_6'):
+            self.assertTrue(hasattr(ca, attr), f'CostumeAssets missing {attr}')
+
+        with TemporaryDirectory() as tmp:
+            old_cwd = os.getcwd()
+            try:
+                os.chdir(tmp)
+                os.makedirs('config', exist_ok=True)
+                with open('config/oas1.json', 'w', encoding='utf-8') as fh:
+                    json.dump({}, fh)
+                tree = self.server._attach_labels(
+                    self.server._task_args('oas1', 'GlobalGame'), 'oas1', 'GlobalGame'
+                )
+            finally:
+                os.chdir(old_cwd)
+        costume_fields = {f['name']: f for f in tree.get('costume_config', [])}
+        realm_opts = {o['value']: o['label'] for o in costume_fields['costume_realm_type']['options']}
+        self.assertEqual(realm_opts.get('costume_realm_6'), '神安眠处')
+        main_opts = {o['value']: o['label'] for o in costume_fields['costume_main_type']['options']}
+        self.assertEqual(main_opts.get('costume_main'), '初语谧景')
 
 
 class WebSocketTests(unittest.TestCase):

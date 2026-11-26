@@ -42,7 +42,7 @@ class OasCourtyardSkin {
     OasCourtyardSkin(
       id: 'night_sakura',
       name: '夜樱满月庭',
-      subtitle: '紫金夜樱 · 经典庭院',
+      subtitle: '紫樱夜华 · 官方插画',
       assetPath: 'assets/onmyoji/skin_1_night_sakura.jpg',
       isDark: true,
       accent: Color(0xFFE04F5F),
@@ -56,8 +56,8 @@ class OasCourtyardSkin {
     ),
     OasCourtyardSkin(
       id: 'spring_courtyard',
-      name: '暖春庭院扫除',
-      subtitle: '官方和风 · 暖阳治愈',
+      name: '金霞暖庭',
+      subtitle: '暖金落照 · 官方插画',
       assetPath: 'assets/onmyoji/skin_2_spring_courtyard.jpg',
       isDark: false,
       accent: Color(0xFFB83B2E),
@@ -86,8 +86,8 @@ class OasCourtyardSkin {
     ),
     OasCourtyardSkin(
       id: 'jade_garden',
-      name: '苍翠茶花庭',
-      subtitle: '青绿水墨 · 萤火清雅',
+      name: '青莲水榭庭',
+      subtitle: '青绿荷塘 · 官方插画',
       assetPath: 'assets/onmyoji/skin_4_jade_garden.jpg',
       isDark: true,
       accent: Color(0xFF10B981),
@@ -102,7 +102,7 @@ class OasCourtyardSkin {
     OasCourtyardSkin(
       id: 'heian_room',
       name: '平安京屏风室',
-      subtitle: '经典和室 · 沉稳墨金',
+      subtitle: '窗棂夜色 · 沉稳墨金',
       assetPath: 'assets/onmyoji/skin_5_heian_room.jpg',
       isDark: true,
       accent: Color(0xFFD97706),

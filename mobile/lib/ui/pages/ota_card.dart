@@ -12,14 +12,15 @@ class _OtaPreset {
     required this.label,
     required this.baseUrl,
     required this.repo,
-    this.branch = 'main',
   });
 
   final String key;
   final String label;
   final String baseUrl;
   final String repo;
-  final String branch;
+
+  /// 分支：两个预置源当前都用 main；要换分支直接改这个默认值。
+  final String branch = 'main';
 }
 
 const _OtaPreset _kGitHubPreset = _OtaPreset(

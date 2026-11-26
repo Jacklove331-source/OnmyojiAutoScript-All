@@ -44,8 +44,7 @@ const Map<String, String> kTaskDisplayNames = <String, String>{
   'MysteryShop': '神秘商店',
   'Nian': '年兽',
   'Orochi': '八岐大蛇',
-  'OrochiMoans': '魂土（悲鸣）',
-  'OtherWorldTwilight': '彼世逢魔',
+    'OtherWorldTwilight': '彼世逢魔',
   'Pets': '小猫咪',
   'Quiz': '智力竞赛',
   'RealmRaid': '个人突破',
@@ -63,7 +62,7 @@ const Map<String, String> kTaskDisplayNames = <String, String>{
   'WeeklyTrifles': '每周琐事',
   'Secret': '秘闻副本',
   'Script': '脚本',
-  'GotoMain': '前往庭院',
+  'GlobalGame': '全局配置',
 };
 
 /// 后端 `/script_menu` 下发的动态译名表（支持 GitCode 数据包热更新，无需重装 APK）
@@ -78,7 +77,6 @@ const List<String> kNonTaskDirs = <String>[
   'Utils',
   'Component',
   'GameUi',
-  'GlobalGame',
   'General',
 ];
 
@@ -86,9 +84,38 @@ const List<String> kNonTaskDirs = <String>[
 String taskDisplayName(String dir) =>
     _runtimeTaskTitles[dir] ?? kTaskDisplayNames[dir] ?? dir;
 
-/// 任务/分类 → 对应的官方式神头像资源路径（零单字方块）
+/// 每个玩法专属一对一独立图标集合（assets/onmyoji/tasks/<TaskDir>.png，互不重复）
+const Set<String> kDedicatedTaskIcons = <String>{
+  'AbyssShadows', 'ActivityShikigami', 'AreaBoss', 'AutoCheckinBigGod',
+  'BondlingFairyland', 'BudokaiTournament', 'Chess', 'CollectiveMissions',
+  'DailyTrifles', 'Delegation', 'DemonEncounter', 'DemonRetreat',
+  'Dokan', 'DraftDuel', 'Duel', 'DyeTrials',
+  'EternitySea', 'EvoZone', 'ExperienceYoukai', 'Exploration',
+  'FallenSun', 'FindJade', 'FloatParade', 'FrogBoss',
+  'FrogChallenge', 'GoldYoukai', 'GoryouRealm', 'GlobalGame',
+  'GuguArtStudio', 'GuildActivityMonitor', 'GuildBanquet', 'HeroTest',
+  'Hunt', 'Hyakkiyakou', 'IbukiArena', 'KekkaiActivation',
+  'KekkaiUtilize', 'KittyShop', 'LBS', 'MartialArts',
+  'MemoryScrolls', 'MetaDemon', 'MysteryShop', 'Nian',
+  'Orochi', 'OtherWorldTwilight', 'Pets',
+  'Quiz', 'RealmRaid', 'Restart', 'RichMan',
+  'RyouToppa', 'Secret', 'SixRealms', 'Sougenbi',
+  'SoulsTidy', 'Tako', 'TalismanPass', 'TrueOrochi',
+  'WantedQuests', 'WeeklyPurchase', 'WeeklyTrifles',
+};
+
+/// 任务/分类 → 对应的专属玩法图标（优先 1 对 1 专属图标，未收录再按分类兜底）
 String taskIconAsset(String taskDirOrTitle) {
-  final String key = taskDirOrTitle.toLowerCase();
+  final String trimmed = taskDirOrTitle.trim();
+  if (kDedicatedTaskIcons.contains(trimmed)) {
+    return 'assets/onmyoji/tasks/$trimmed.png';
+  }
+  for (final MapEntry<String, String> entry in kTaskDisplayNames.entries) {
+    if (entry.value == trimmed && kDedicatedTaskIcons.contains(entry.key)) {
+      return 'assets/onmyoji/tasks/${entry.key}.png';
+    }
+  }
+  final String key = trimmed.toLowerCase();
   if (key.contains('orochi') ||
       key.contains('sougenbi') ||
       key.contains('fallen') ||

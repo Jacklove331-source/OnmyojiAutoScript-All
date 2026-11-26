@@ -167,6 +167,98 @@ class TestAssetMonitor(unittest.TestCase):
         )
 
 
+class TestAssetRefreshAfterTask(unittest.TestCase):
+    """每跑完一个任务自动刷新一次资产；重启任务跳过。"""
+
+    def setUp(self):
+        from oas_mobile import asset_monitor
+        self.am = asset_monitor
+        self.calls = []
+        self._orig = asset_monitor.refresh_assets
+        asset_monitor.refresh_assets = lambda ws, config="oas1", force=False: (
+            self.calls.append((ws, config, force)),
+            {"ok": True, "snapshot": {"updated_at": "2026-11-26 16:00:00"}},
+        )[1]
+        self.am._STATUS.update({"running": False, "config": "", "last_error": "", "phase": ""})
+        self.am._TASKS_SINCE_REFRESH = 0
+
+    def tearDown(self):
+        self.am.refresh_assets = self._orig
+        self.am._STATUS.update({"running": False, "config": "", "last_error": "", "phase": ""})
+        self.am._TASKS_SINCE_REFRESH = 0
+
+    def test_every_three_tasks_triggers_one_refresh(self):
+        # 用户口径：每跑完 3 个任务刷新一次
+        self.assertEqual(self.am.ASSET_REFRESH_EVERY, 3)
+        first = self.am.refresh_after_task("/tmp/ws", "oas1", "Orochi")
+        second = self.am.refresh_after_task("/tmp/ws", "oas1", "Hunt")
+        self.assertEqual((first["reason"], first["count"]), ("counting", 1))
+        self.assertEqual((second["reason"], second["count"]), ("counting", 2))
+        self.assertEqual(self.calls, [], "前两个任务不该刷新")
+        third = self.am.refresh_after_task("/tmp/ws", "oas1", "Tako")
+        self.assertTrue(third["started"])
+        self.assertEqual(self.calls, [("/tmp/ws", "oas1", True)])
+        self.assertFalse(self.am._STATUS["running"], "结束后必须把 running 复位")
+        # 归零：下一个任务重新从 1 开始数
+        again = self.am.refresh_after_task("/tmp/ws", "oas1", "Pets")
+        self.assertEqual((again["reason"], again["count"]), ("counting", 1))
+
+    def test_restart_task_is_skipped_and_not_counted(self):
+        out = self.am.refresh_after_task("/tmp/ws", "oas1", "Restart")
+        self.assertFalse(out["started"])
+        self.assertEqual(out["reason"], "skip_task")
+        self.assertEqual(out["count"], 0, "重启任务不计数")
+        self.assertEqual(self.calls, [])
+
+    def test_empty_task_name_is_skipped(self):
+        out = self.am.refresh_after_task("/tmp/ws", "oas1", "")
+        self.assertEqual(out["reason"], "no_task")
+        self.assertEqual(self.calls, [])
+
+    def test_busy_refresh_is_not_stacked(self):
+        self.am._TASKS_SINCE_REFRESH = self.am.ASSET_REFRESH_EVERY - 1
+        self.am._STATUS["running"] = True
+        out = self.am.refresh_after_task("/tmp/ws", "oas1", "Orochi")
+        self.assertTrue(out["busy"])
+        self.assertEqual(self.calls, [])
+
+    def test_refresh_error_is_reported_not_raised(self):
+        def boom(*a, **k):
+            raise RuntimeError("display gone")
+        self.am.refresh_assets = boom
+        self.am._TASKS_SINCE_REFRESH = self.am.ASSET_REFRESH_EVERY - 1
+        out = self.am.refresh_after_task("/tmp/ws", "oas1", "Hunt")
+        self.assertFalse(out["ok"])
+        self.assertIn("display gone", out["error"])
+        self.assertFalse(self.am._STATUS["running"])
+
+    def test_refresh_after_task_does_not_self_deadlock_real_refresh_assets(self):
+        # 真实调用未 mock 的 refresh_assets，确保不会因为提前置 running=True 自我死锁返回 busy
+        from types import SimpleNamespace
+        from unittest.mock import patch
+
+        self.am.refresh_assets = self._orig
+        fake_bridge = SimpleNamespace(
+            available=lambda: False,
+            shizuku_available=lambda: True,
+            vdstream_running=lambda: True,
+            vdstream_display=lambda: 7,
+            vdstream_info=lambda: {"target_on_display": True},
+            target_package=lambda: "com.netease.onmyoji",
+            display_screenshot=lambda d: b"",
+        )
+        self.am._TASKS_SINCE_REFRESH = self.am.ASSET_REFRESH_EVERY - 1
+        with tempfile.TemporaryDirectory() as ws:
+            with patch.dict(sys.modules, {"oas_mobile.bridge": fake_bridge}), patch.object(
+                self.am.time, "sleep", return_value=None
+            ):
+                out = self.am.refresh_after_task(ws, "oas1", "Tako")
+        self.assertTrue(out["started"])
+        self.assertFalse(out.get("busy", False))
+        self.assertEqual(out["error"], "无法获取虚拟屏截图")
+        self.assertFalse(self.am._STATUS["running"])
+
+
 class TestOtaUpdater(unittest.TestCase):
     def _make_zip(self, entries: dict[str, bytes]) -> tuple[bytes, str]:
         buf = io.BytesIO()

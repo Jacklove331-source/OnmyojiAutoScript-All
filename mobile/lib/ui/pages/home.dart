@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../api.dart';
+import '../avatar_picker.dart';
 import '../shell.dart';
 import '../task_names.dart';
 import '../widgets.dart';
 import 'assets_card.dart';
+import 'ai_recovery.dart';
 import 'task_args.dart';
 
 /// ① 庭院：一眼看清状态，主按钮只有一个；下方实时展示与电脑端 OAS 一致的「任务排序」。
@@ -35,6 +37,9 @@ class _HomePageState extends State<HomePage> {
   bool _busy = false;
   String? _error;
 
+  /// 自愈历史（`/ai/recovery`）：只用来给「异常 · AI 修复」格子填数字，点进去看详情。
+  OasAiRecovery? _aiRecovery;
+
   @override
   void initState() {
     super.initState();
@@ -59,6 +64,8 @@ class _HomePageState extends State<HomePage> {
       final Map<String, bool> enabled =
           await _api.taskEnabled(_api.activeConfig);
       final List<OasTask> tasks = await _api.tasks();
+      // 自愈历史单独取：老后端没这条路由时返回空页，不影响首页其它数据
+      final OasAiRecovery ai = await _api.aiRecovery(limit: 1);
       if (!mounted) return;
       final Map<String, dynamic> qData = r[4];
       final List<Map<String, dynamic>> parsedQueue = <Map<String, dynamic>>[];
@@ -77,6 +84,7 @@ class _HomePageState extends State<HomePage> {
         _sched = r[2];
         _task = r[3];
         _queue = parsedQueue;
+        _aiRecovery = ai;
         _pendingCount = (qData['pending_count'] is num)
             ? (qData['pending_count'] as num).toInt()
             : parsedQueue.where((Map<String, dynamic> e) => e['status'] == 'pending').length;
@@ -326,17 +334,30 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: OasStatCell(
-                    value: _error == null ? '0' : '—',
-                    label: '异常 · AI 修复',
+                  // 点进去看自愈历史（log/ai_recovery/incidents）
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => AiRecoveryPage(api: _api),
+                      ),
+                    ),
+                    child: OasStatCell(
+                      value: _error != null
+                          ? '—'
+                          : '${_aiRecovery?.total ?? 0}',
+                      unit: (_aiRecovery?.needsHuman ?? 0) > 0
+                          ? '/ ${_aiRecovery!.needsHuman} 需人工'
+                          : null,
+                      label: '异常 · AI 修复 ›',
+                      valueColor: (_aiRecovery?.needsHuman ?? 0) > 0
+                          ? p.vermilion
+                          : null,
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 18),
-            const OasSectionHeader(title: '据点', trailing: '长按可编辑'),
-            const SizedBox(height: 8),
-            _baseGrid(context, p),
             const SizedBox(height: 18),
             _queueSectionHeader(p),
             const SizedBox(height: 8),
@@ -607,7 +628,12 @@ class _HomePageState extends State<HomePage> {
             padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
             child: Row(
               children: <Widget>[
-                _FoxAvatar(p: p, size: 44),
+                OasAvatarBadge(
+                  size: 44,
+                  borderColor: p.gold.withOpacity(0.55),
+                  borderWidth: 1.4,
+                  onTap: () => showOasAvatarPicker(context),
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -629,7 +655,15 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
+                // 改头像入口：与「我的」页共用同一个选择器，改完两处一起变
+                OasPill(
+                  text: '改头像',
+                  color: p.inkSoft,
+                  outlined: true,
+                  onTap: () => showOasAvatarPicker(context),
+                ),
+                const SizedBox(width: 6),
                 OasPill(
                     text: (_state?['virtual_display'] is num &&
                             (_state!['virtual_display'] as num) >= 0)
@@ -698,113 +732,4 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  /// 据点四宫格：使用阴阳师官方式神高清头像
-  Widget _baseGrid(BuildContext context, OasPalette p) {
-    final List<({String label, String asset, String searchHint})> items =
-        <({String label, String asset, String searchHint})>[
-      (
-        label: '庭院日常',
-        asset: 'assets/onmyoji/cat_shiranui.png',
-        searchHint: '每日'
-      ),
-      (
-        label: '御魂副本',
-        asset: 'assets/onmyoji/cat_orochi.png',
-        searchHint: '大蛇'
-      ),
-      (
-        label: '觉醒材料',
-        asset: 'assets/onmyoji/cat_oote.png',
-        searchHint: '觉醒'
-      ),
-      (
-        label: '限时活动',
-        asset: 'assets/onmyoji/cat_amaterasu.png',
-        searchHint: '活动'
-      ),
-    ];
-    return OasCard(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 11),
-      child: Row(
-        children: <Widget>[
-          for (int i = 0; i < items.length; i++) ...<Widget>[
-            if (i > 0) const SizedBox(width: 6),
-            Expanded(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  OasShell.goTab?.call(1);
-                  OasToast.show(
-                    context,
-                    '已切到绘卷页，搜「${items[i].searchHint}」挑一个任务配置',
-                  );
-                },
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    OasAssetBadge(
-                      asset: items[i].asset,
-                      size: 42,
-                      radius: 11,
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      items[i].label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: p.ink,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-/// 庭院看板式神头像：使用官方纯人物透明立绘
-class _FoxAvatar extends StatelessWidget {
-  const _FoxAvatar({required this.p, required this.size});
-
-  final OasPalette p;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: p.surfaceAlt.withOpacity(0.5),
-        border: Border.all(color: p.gold.withOpacity(0.55), width: 1.4),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(2),
-        child: Image.asset(
-          'assets/onmyoji/dock_home.png',
-          fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => Text(
-            '庭',
-            style: TextStyle(
-              fontFamily: OasFont.serif,
-              fontFamilyFallback: OasFont.serifFallback,
-              fontSize: size * 0.42,
-              height: 1,
-              fontWeight: FontWeight.w700,
-              color: p.goldHi,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }

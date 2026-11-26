@@ -112,7 +112,6 @@ const _summaryKeys = <({String label, String key})>[
 Future<void> showAssetsDetailDialog(
   BuildContext context,
   Map<String, dynamic>? data,
-  VoidCallback onRefresh,
 ) async {
   final snapshot = data ?? const <String, dynamic>{};
 
@@ -135,7 +134,7 @@ Future<void> showAssetsDetailDialog(
                 ListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  leading: _CurrencyIcon(assetKey: item.key, size: 28),
+                  leading: _CurrencyIcon(assetKey: item.key, size: 30),
                   title: Text(item.label),
                   trailing: Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
@@ -177,7 +176,7 @@ Future<void> showAssetsDetailDialog(
                   ),
                 ),
               const Text(
-                '纯截图 OCR 只读，绝不点购买/确认；每天任务全部跑完自动更新 1 次',
+                '纯截图 OCR 只读，绝不点购买/确认；每跑完 3 个任务自动更新一次（重启任务除外）',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 11, color: Colors.grey),
               ),
@@ -188,14 +187,6 @@ Future<void> showAssetsDetailDialog(
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('关闭'),
-          ),
-          TextButton.icon(
-            onPressed: () {
-              Navigator.pop(context);
-              onRefresh();
-            },
-            icon: const Icon(Icons.refresh, size: 16),
-            label: const Text('立即巡检更新'),
           ),
         ],
       );
@@ -319,30 +310,12 @@ class _OasAssetsCardState extends State<OasAssetsCard> {
     if (!mounted) return;
     setState(() {
       _loading = false;
-      _error = '巡检耗时较长，请稍后再次点更新查看结果';
+      _error = '巡检耗时较长，稍后下拉刷新查看结果';
     });
-  }
-
-  Future<void> _refresh() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      await _api.assetsRefresh(force: true);
-      if (!mounted) return;
-      await _pollUntilDone();
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _loading = false;
-        _error = '更新失败，请确认后台服务已连接';
-      });
-    }
   }
 
   void _openDetail() {
-    showAssetsDetailDialog(context, _snapshot, _refresh);
+    showAssetsDetailDialog(context, _snapshot);
   }
 
   @override
@@ -378,6 +351,15 @@ class _OasAssetsCardState extends State<OasAssetsCard> {
                     ],
                   ),
                 ),
+                if (_loading)
+                  const Padding(
+                    padding: EdgeInsets.only(right: 8),
+                    child: SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
                 TextButton(
                   onPressed: _loading ? null : _openDetail,
                   style: TextButton.styleFrom(
@@ -387,23 +369,6 @@ class _OasAssetsCardState extends State<OasAssetsCard> {
                     visualDensity: VisualDensity.compact,
                   ),
                   child: const Text('详情', style: TextStyle(fontSize: 12)),
-                ),
-                const SizedBox(width: 4),
-                TextButton(
-                  onPressed: _loading ? null : _refresh,
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    visualDensity: VisualDensity.compact,
-                  ),
-                  child: _loading
-                      ? const SizedBox(
-                          width: 12,
-                          height: 12,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('更新', style: TextStyle(fontSize: 12)),
                 ),
               ],
             ),
@@ -444,9 +409,9 @@ class _OasAssetsCardState extends State<OasAssetsCard> {
     final captured = _snapshot['captured_at'];
     final short = _formatCapturedAt(captured);
     if (short != null) {
-      return '每日任务全完自动更新 · $short';
+      return '每 3 个任务结束后自动更新 · $short';
     }
-    return '当日任务全完后自动更新一次';
+    return '每跑完 3 个任务自动更新一次（重启除外）';
   }
 }
 
@@ -470,7 +435,7 @@ class _SummaryItem extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _CurrencyIcon(assetKey: assetKey, size: 22),
+        _CurrencyIcon(assetKey: assetKey, size: 26),
         const SizedBox(height: 3),
         Text(
           label,
@@ -510,13 +475,22 @@ class _SummaryItem extends StatelessWidget {
 }
 
 class _CurrencyIcon extends StatelessWidget {
-  const _CurrencyIcon({required this.assetKey, this.size = 24});
+  const _CurrencyIcon({required this.assetKey, this.size = 26});
 
   final String assetKey;
   final double size;
 
-  @override
-  Widget build(BuildContext context) {
+  static String? _assetPathFor(String key) => switch (key) {
+        'jade' => 'assets/onmyoji/currency_jade.png',
+        'coin' => 'assets/onmyoji/currency_coin.png',
+        'ap' => 'assets/onmyoji/currency_ap.png',
+        'mystery_amulet' => 'assets/onmyoji/currency_mystery_amulet.png',
+        'skin_token' => 'assets/onmyoji/currency_skin_token.png',
+        's_jade' => 'assets/onmyoji/currency_s_jade.png',
+        _ => null,
+      };
+
+  Widget _fallback() {
     final (IconData icon, Color fg, Color bg) = switch (assetKey) {
       'jade' => (Icons.nights_stay_rounded, const Color(0xFFFFE082), const Color(0xFF92400E)),
       'ap' => (Icons.rice_bowl_rounded, const Color(0xFFFCA5A5), const Color(0xFF991B1B)),
@@ -540,6 +514,24 @@ class _CurrencyIcon extends StatelessWidget {
       ),
       alignment: Alignment.center,
       child: Icon(icon, size: size * 0.58, color: fg),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final String? path = _assetPathFor(assetKey);
+    if (path == null) return _fallback();
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Image.asset(
+        path,
+        width: size,
+        height: size,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.medium,
+        errorBuilder: (_, __, ___) => _fallback(),
+      ),
     );
   }
 }

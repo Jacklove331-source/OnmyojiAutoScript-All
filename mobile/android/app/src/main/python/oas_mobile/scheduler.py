@@ -370,13 +370,12 @@ def start(tasks=None, interval: int = 1800, config_name: str = 'oas1') -> dict:
                         if stop_event.is_set() or reached_daily_limit():
                             break
                         try:
-                            from . import asset_monitor, device_guard
+                            from . import device_guard
                             from .task_runner import prepare_workspace
                             ws = prepare_workspace()
-                            asset_monitor.maybe_refresh_after_daily_tasks(ws, config_name)
                             device_guard.on_daily_tasks_completed(ws)
                         except Exception as asset_err:  # noqa: BLE001
-                            _log(f'asset refresh skipped: {asset_err}')
+                            _log(f'daily tasks hook skipped: {asset_err}')
                         with _LOCK:
                             SCHEDULER['next_at'] = int(time.time()) + interval
                         stop_event.wait(interval)
@@ -393,13 +392,12 @@ def start(tasks=None, interval: int = 1800, config_name: str = 'oas1') -> dict:
                         if delay:
                             if SCHEDULER['completed'] > 0:
                                 try:
-                                    from . import asset_monitor, device_guard
+                                    from . import device_guard
                                     from .task_runner import prepare_workspace
                                     ws = prepare_workspace()
-                                    asset_monitor.maybe_refresh_after_daily_tasks(ws, config_name)
                                     device_guard.on_daily_tasks_completed(ws)
                                 except Exception as asset_err:  # noqa: BLE001
-                                    _log(f'asset refresh skipped: {asset_err}')
+                                    _log(f'daily tasks hook skipped: {asset_err}')
                             with _LOCK:
                                 SCHEDULER['next_at'] = int(time.time() + delay)
                             stop_event.wait(min(delay, 5))

@@ -47,6 +47,20 @@ main_costume_model[getattr(MainType, "COSTUME_MAIN_13")] = {
 
 
 
+# 结界皮肤（阴阳寮 → 结界）：只覆盖结界界面的 4 个入口模板
+realm_costume_model = {}
+for _realm_idx in range(1, 7):
+    _realm_member = getattr(RealmType, f'COSTUME_REALM_{_realm_idx}', None)
+    if _realm_member is None:
+        continue
+    realm_costume_model[_realm_member] = {
+        'I_SHI_GROWN': f'I_SHI_GROWN_{_realm_idx}',
+        'I_SHI_CARD': f'I_SHI_CARD_{_realm_idx}',
+        'I_SHI_DEFENSE': f'I_SHI_DEFENSE_{_realm_idx}',
+        'I_REALM_SHIN': f'I_REALM_SHIN_{_realm_idx}',
+    }
+
+
 # 鲤鱼旗皮肤
 carpbanner_costume_model = {
     getattr(CarpBannerType, f"COSTUME_CARPBANNER_{i}"): {
@@ -107,6 +121,7 @@ class CostumeBase:
         current_task = self.get_task_name()
         logger.info(f'Current task: {current_task}')
         self.check_costume_main(config.costume_main_type)
+        self.check_costume_realm(config.costume_realm_type)
         self.check_costume_carpbanner(config.costume_carpbanner_type)
         self.check_costume_battle(config.costume_battle_type)
         self.check_costume_battle_scene(config.costume_battle_scene_type)
@@ -140,6 +155,17 @@ class CostumeBase:
             else:
                 assert_value: RuleImage = getattr(costume_assets, value)
                 self.replace_img(key, assert_value)
+
+    def check_costume_realm(self, realm_type: RealmType):
+        if realm_type == RealmType.COSTUME_REALM_DEFAULT:
+            return
+        logger.info(f'Switch realm costume to {realm_type} ({I18n.trans_zh_cn(realm_type)})')
+        realm_assets = CostumeAssets()
+        for key, value in realm_costume_model.get(realm_type, {}).items():
+            if not hasattr(realm_assets, value):
+                logger.warning(f'Realm costume asset {value} not found, skip')
+                continue
+            self.replace_img(key, getattr(realm_assets, value))
 
     def check_costume_carpbanner(self, carpbanner_type: CarpBannerType):
         if carpbanner_type == CarpBannerType.COSTUME_CARPBANNER_DEFAULT:

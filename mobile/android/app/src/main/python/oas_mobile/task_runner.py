@@ -102,6 +102,8 @@ def run_task(name: str, config_name: str = 'oas1', wait: bool = False,
     with _LOCK:
         if TASK_STATE['running'] or (_THREAD is not None and _THREAD.is_alive()):
             return {'ok': False, 'error': 'another task is running', 'status': status()}
+        if TASK_STATE.get('assets_refreshing'):
+            return {'ok': False, 'error': '任务已结束，正在自动更新资产，请稍候', 'status': status()}
         run_id = uuid.uuid4().hex
         cancel = threading.Event()
         _CANCEL = cancel
@@ -191,6 +193,25 @@ def run_task(name: str, config_name: str = 'oas1', wait: bool = False,
                             'error': error_text, 'cancelled': cancelled,
                             'phase': 'stopped' if cancelled else ('completed' if ok else 'failed'),
                         })
+                # 任务结束 → 自动刷新一次资产（重启任务除外）。放在这里是因为
+                # scheduler 用 run_task(wait=True) 等本线程结束：刷新跑完才排下一个任务，
+                # 不会出现"刷新和下一个任务同时抢虚拟屏"。
+                if not cancelled:
+                    try:
+                        from . import asset_monitor as _assets
+                        with _LOCK:
+                            if TASK_STATE['run_id'] == run_id:
+                                TASK_STATE['assets_refreshing'] = True
+                        _res = _assets.refresh_after_task(prepare_workspace(), config_name, name)
+                        _reason = _res.get('reason') or 'updated'
+                        _count = f"{_res.get('count', '')}/{_res.get('every', '')}" if _res.get('count') is not None else ''
+                        _log(f"asset refresh: task={name} reason={_reason} {_count} "
+                             f"updated={_res.get('snapshot_updated_at', '')}")
+                    except Exception as asset_err:  # noqa: BLE001
+                        _log(f'asset refresh skipped: {asset_err}')
+                    finally:
+                        with _LOCK:
+                            TASK_STATE['assets_refreshing'] = False
 
         thread = threading.Thread(target=worker, name=f'oas-task-{name}', daemon=True)
         _THREAD = thread

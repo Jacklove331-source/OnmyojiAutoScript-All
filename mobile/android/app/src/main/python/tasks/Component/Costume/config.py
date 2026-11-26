@@ -28,6 +28,7 @@ class MainType(str, Enum):
 # 结界皮肤
 class RealmType(str, Enum):
     COSTUME_REALM_DEFAULT = 'costume_realm_default'  # 妖扇结界
+    COSTUME_REALM_6 = 'costume_realm_6'  # 神安眠处
 
 # 鲤鱼旗皮肤
 class CarpBannerType(str, Enum):

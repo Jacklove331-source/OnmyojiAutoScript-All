@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -91,6 +92,9 @@ def _set_config_value(script_name: str, task_name: str, group_name: str,
         if not ok and bak_path:
             try:
                 _shutil.copyfile(bak_path, cfg_path)
+                from module.config.config import load_config as _reload
+
+                _reload(force=True)
                 logger.info('[mobile] config rolled back from %s', bak_path)
             except Exception as error:  # noqa: BLE001
                 logger.error('[mobile] rollback failed: %r', error)
@@ -101,6 +105,49 @@ def _set_config_value(script_name: str, task_name: str, group_name: str,
         return False
 
 
+# 复用父任务执行体的兼容任务：参数树要拿父任务的，否则点开是空配置类。
+# 目前没有启用中的别名（魂土已按「与八岐大蛇重复」下线）；机制保留给以后同类任务：
+#   TASK_ARG_ALIASES = {"SomeCompatTask": "ParentTask"}
+TASK_ARG_ALIASES: dict[str, str] = {}
+
+
+def _enum_options_for(model, task_key: str, group: str, field: str) -> list:
+    """把 OAS 的枚举字段翻成 [{value,label}]，手机端才知道这是下拉而不是手填。"""
+    from enum import Enum
+    try:
+        from module.server.i18n import I18n
+    except Exception:  # noqa: BLE001
+        I18n = None
+    cfg = getattr(model, task_key, None)
+    cls = getattr(getattr(cfg, "__fields__", {}).get(group), "type_", None)
+    fld = getattr(cls, "__fields__", {}).get(field)
+    enum_type = getattr(fld, "type_", None) or getattr(fld, "outer_type_", None)
+    if not (isinstance(enum_type, type) and issubclass(enum_type, Enum)):
+        return []
+    try:
+        from .i18n_zh import MESSAGES as _zh
+    except Exception:  # noqa: BLE001
+        _zh = {}
+    out = []
+    for member in enum_type:
+        # 标签优先级：手机端中文词库（value → 中文）> OAS 的 I18n > 原始 value
+        label = _zh.get(member.value) if isinstance(_zh, dict) else None
+        if not isinstance(label, str) or not label:
+            label = None
+            if I18n is not None:
+                try:
+                    raw_label = I18n.trans_zh_cn(member)
+                except Exception:  # noqa: BLE001
+                    raw_label = None
+                # 有的 i18n 只给 "EnumClass.MEMBER" 这种路径，用户看不懂，丢掉换 value
+                if (isinstance(raw_label, str) and raw_label
+                        and not raw_label.startswith("<")
+                        and not re.fullmatch(r"[A-Za-z_]+\.[A-Za-z0-9_]+", raw_label)):
+                    label = raw_label
+        out.append({"value": member.value, "label": label or member.value})
+    return out
+
+
 def _task_args(script_name: str, task_name: str) -> dict:
     """`Config(script).model.script_task(task)` → OASX 需要的参数树。"""
     from module.config.config import Config
@@ -109,7 +156,40 @@ def _task_args(script_name: str, task_name: str) -> dict:
     model = getattr(config, "model", None)
     if model is None or not hasattr(model, "script_task"):
         return {}
-    return model.script_task(task_name)
+    parent = TASK_ARG_ALIASES.get(task_name)
+    tree = model.script_task(parent or task_name)
+    if not isinstance(tree, dict):
+        return {}
+    # 枚举字段补 options（皮肤/战斗主题这类：手机端直接给下拉，不用手抄内部 ID）
+    task_key = "".join(
+        "_" + ch.lower() if ch.isupper() else ch for ch in str(parent or task_name)
+    ).lstrip("_")
+    for group, items in list(tree.items()):
+        if not isinstance(items, list):
+            continue
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            opts = _enum_options_for(model, task_key, str(group), str(item.get("name") or ""))
+            if opts:
+                item["options"] = opts
+                item["type"] = "enum"
+            else:
+                item.pop("options", None)
+    if not parent:
+        return tree
+    tree = tree or {}
+    note = {
+        "k": "alias_note",
+        "title": "说明",
+        "description": "",
+        "default": "",
+        "value": f"复用「{parent}」的执行体：层数固定为悲鸣（第 11 层），调度走自己的 {task_name} 配置段",
+        "type": "string-note",
+    }
+    out = {"alias_note": [note]}
+    out.update(tree)
+    return out
 
 
 def _workspace() -> str:
@@ -158,6 +238,14 @@ def _next_config_name() -> str:
     return "oas_new"
 
 
+MOBILE_HIDDEN_TASKS = {
+    # 与 Orochi 完全一致：app 包里就是 `class ScriptTask(OrochiTask)` + _battle_layer=Layer.ELEVEN，
+    # 参数全程读 config.orochi.*（用户口径：「魂土就是八岐大蛇 一模一样」）→ 手机端只留一份。
+    "OrochiMoans": "与八岐大蛇完全一致（魂土=悲鸣层），不重复列出",
+    # 纯空壳：script_task.py 只有一句 goto_page(page_main)，手机端已由「全局配置」取代。
+    "GotoMain": "纯空壳（只把游戏切回主界面），已由「全局配置」取代",
+}
+
 ANDROID_UNSUPPORTED_TASKS = {
     # 上游 AutoCheckinBigGod 的工作方式是「Windows 侧 adb.exe + frida.exe 通过 USB/TCP attach
     # 到装了官方网易大神 App 的手机」：_get_frida_exe() 找 python_dir/Scripts/frida.exe、
@@ -192,14 +280,28 @@ def _script_menu() -> dict:
         directories = os.listdir(base) if base else []
     except (ImportError, OSError):
         directories = []
+    # 能不能跑，只认「有执行体」：task_runner 严格按 tasks.<Name>.script_task 加载。
+    # ConfigModel 那一路原本无条件收录（orochi_moans 这种只有空配置类的字段也会进菜单），
+    # 这里统一过一遍 find_spec；Script 是全局设置面板（没有执行体、也不该单独跑），例外保留。
+    # Script：全局脚本设置面板；GlobalGame：电脑端的「全局配置」（紧急停止/皮肤/团队流程），
+    # 两者都没有 script_task.py，但都是用户要能在手机上改的参数页。
+    SETTINGS_ONLY = {"Script", "GlobalGame"}
+
+    def runnable(name: str) -> bool:
+        if name in SETTINGS_ONLY:
+            return True
+        try:
+            return find_spec(f"tasks.{name}.script_task") is not None
+        except (ImportError, AttributeError, ValueError):
+            return False
+
     for name in directories:
         if name in names or name.startswith("__") or "." in name:
             continue
-        try:
-            if find_spec(f"tasks.{name}.script_task") is not None:
-                names.add(name)
-        except (ImportError, AttributeError, ValueError):
-            continue
+        names.add(name) if runnable(name) else None
+    names = {name for name in names if runnable(name)}
+    # 重复项不再列出；桌面专属任务（unsupported）保留在清单里，原因随 unsupported 字段返回
+    names -= set(MOBILE_HIDDEN_TASKS)
     sorted_names = sorted(names)
     mapping = _i18n_map("zh_CN")
     titles = {n: mapping[n] for n in sorted_names if n in mapping}
@@ -310,13 +412,26 @@ def _attach_labels(payload: dict, script_name: str = "", task_name: str = "") ->
                 field["help_text"] = help_text
             if isinstance(field.get("value"), list):
                 continue
+            # 若 _task_args 已从实时 Enum 反射生成中文 options，绝不用旧静态 enum_map 覆盖回英文
+            existing_opts = field.get("options")
+            if isinstance(existing_opts, list) and existing_opts:
+                field["type"] = "enum"
+                field["option_values"] = [
+                    o.get("value") for o in existing_opts if isinstance(o, dict) and o.get("value") is not None
+                ]
+                field["option_labels"] = [
+                    str(o.get("label") or o.get("value"))
+                    for o in existing_opts
+                    if isinstance(o, dict) and o.get("value") is not None
+                ]
+                continue
             candidates = enums.get((group_name, name)) or enums.get(name) or []
             if not candidates:
                 continue
             field["type"] = "enum"
             field["option_values"] = list(candidates)
-            field["option_labels"] = list(candidates)
-            field["options"] = [{"value": v, "label": v} for v in candidates]
+            field["option_labels"] = [str(mapping.get(v) or v) for v in candidates]
+            field["options"] = [{"value": v, "label": str(mapping.get(v) or v)} for v in candidates]
     return payload
 
 
@@ -398,6 +513,17 @@ def _save_frame(data) -> None:
         pass
 
 
+def _grab_frame_png() -> bytes:
+    """现抓一张 PNG：只走 Shizuku 虚拟屏（无障碍执行层已移除）。"""
+    display = int(_ensure_display())
+    if display < 0:
+        raise RuntimeError("没有可用的虚拟屏：先在「我的 → 权限状态」里授权 Shizuku")
+    data = bridge.display_screenshot(display)
+    if not data:
+        raise RuntimeError(f"虚拟屏截图失败 (display={display})")
+    return bytes(data)
+
+
 def _latest_frame() -> dict:
     """返回最近一帧 PNG（base64）及其时间；没有就如实告诉前端。"""
     import base64
@@ -415,7 +541,7 @@ def _latest_frame() -> dict:
         if not files:
             # 没历史帧就现抓一张（虚拟屏路径在模拟器上不可用，但 capture_png 可用）
             try:
-                data = bridge.capture_png()
+                data = _grab_frame_png()
             except Exception:  # noqa: BLE001
                 data = None
             if not data or len(data) < 12000:
@@ -440,7 +566,7 @@ def _latest_frame() -> dict:
         if not newest:
             # 历史帧全是黑的：不能就此说没帧，得现抓一张再判
             try:
-                fresh = bridge.capture_png()
+                fresh = _grab_frame_png()
             except Exception:  # noqa: BLE001
                 fresh = None
             if fresh and len(fresh) >= 12000:
@@ -494,7 +620,7 @@ def _ai_config_apply(raw: bytes) -> dict:
     try:
         from pathlib import Path
 
-        from module.ai_recovery.config import DEFAULT_KEY_FILE, config_path, load_config
+        from module.ai_recovery.config import config_path, load_config
 
         cfg = load_config(force=True)
         changed = []
@@ -503,7 +629,7 @@ def _ai_config_apply(raw: bytes) -> dict:
         if api_key:
             key_file = Path(cfg.api.key_file)
             if not key_file.is_absolute():
-                key_file = DEFAULT_KEY_FILE
+                key_file = Path(config_path()).parent.parent / key_file
             key_file.parent.mkdir(parents=True, exist_ok=True)
             with open(key_file, "w", encoding="utf-8") as handle:
                 handle.write(api_key + "\n")
@@ -562,16 +688,12 @@ def _apk_build() -> str:
 
 
 def _health_payload() -> dict:
-    accessibility_ready = bridge.available()
-    shizuku_ready = bridge.shizuku_available()
-    available = shizuku_ready or accessibility_ready
+    available = bridge.shizuku_available()
     return {
         "ok": True,
         "build": _apk_build(),
         "version": __version__,
         "bridge_available": available,
-        "shizuku_ready": shizuku_ready,
-        "accessibility_ready": accessibility_ready,
         "bridge_reason": None if available else bridge.unavailable_reason(),
         "background_service": bridge.service_running(),
         "paused": bridge.paused(),
@@ -595,16 +717,6 @@ def _state_payload() -> dict:
         "shizuku_ready": bridge.shizuku_available(),
         "virtual_display": display,
     }
-
-
-def _injection_blocked() -> dict | None:
-    """后台运行的核心守卫：目标游戏不在前台/用户暂停时，禁止注入手势。"""
-    if bridge.paused():
-        return {"ok": False, "paused": True, "reason": "paused by user"}
-    if not bridge.is_target_foreground():
-        return {"ok": False, "paused": True,
-                "reason": f"target app not foreground (foreground={bridge.foreground_package()!r})"}
-    return None
 
 
 # ---------------------------------------------------------------- stdlib 实现
@@ -741,6 +853,12 @@ class _Handler(BaseHTTPRequestHandler):
         if route.path == "/ai/config":
             self._send_json(200, _ai_config_payload())
             return
+        if route.path == "/ai/recovery":
+            from . import ai_recovery_history
+            limit = query.get("limit", 50)
+            cfg_name = query.get("config", "")
+            self._send_json(200, ai_recovery_history.build_payload(_workspace(), limit=limit, config=cfg_name))
+            return
         if route.path == "/ai/health":
             try:
                 from module.ai_recovery.config import load_config
@@ -762,7 +880,7 @@ class _Handler(BaseHTTPRequestHandler):
                 from dataclasses import asdict
                 from module.ai_recovery.config import load_config
                 from module.ai_recovery.client import DeepSeekClient
-                png = bridge.capture_png()
+                png = _grab_frame_png()
                 image = cv2.imdecode(np.frombuffer(png, np.uint8), cv2.IMREAD_COLOR)
                 ok, buf = cv2.imencode(".jpg", image, [int(cv2.IMWRITE_JPEG_QUALITY), 70])
                 if not ok:
@@ -894,7 +1012,7 @@ class _Handler(BaseHTTPRequestHandler):
             except Exception as error:  # noqa: BLE001
                 logger.warning(f'[mobile] vd screenshot failed: {error!r}')
                 try:
-                    data = bridge.capture_png()
+                    data = _grab_frame_png()
                 except Exception:  # noqa: BLE001
                     data = None
                 if data:
@@ -906,6 +1024,17 @@ class _Handler(BaseHTTPRequestHandler):
         if route.path == "/assets":
             from .matcher import list_assets
             self._send_json(200, {"ok": True, "assets": list_assets()})
+            return
+        if route.path == "/assets/snapshot":
+            # 只读快照：每跑完一个任务由 task_runner 自动刷新一次（重启任务除外），
+            # 手机端没有手动触发入口。
+            from . import asset_monitor
+            config = (query.get("config") or "oas1").strip() or "oas1"
+            try:
+                snap = asset_monitor.load_snapshot(_workspace(), config)
+                self._send_json(200, {"ok": True, **snap})
+            except Exception as error:  # noqa: BLE001
+                self._send_json(500, {"ok": False, "error": repr(error)})
             return
         if route.path == "/match":
             from .matcher import match
@@ -1208,11 +1337,6 @@ class _Handler(BaseHTTPRequestHandler):
         if route.path == "/state":
             self._send_json(200, _state_payload())
             return
-        if route.path == "/assets/snapshot":
-            from . import asset_monitor
-            cfg = query.get("config", "oas1")
-            self._send_json(200, asset_monitor.load_snapshot(_workspace(), cfg))
-            return
         if route.path == "/ota/status":
             from . import ota_updater
             self._send_json(200, ota_updater.get_status(_workspace()))
@@ -1227,7 +1351,7 @@ class _Handler(BaseHTTPRequestHandler):
             return
         if route.path == "/screenshot.png":
             try:
-                data = bridge.capture_png()
+                data = _grab_frame_png()
             except Exception as error:  # noqa: BLE001
                 self._send_json(503, {"ok": False, "error": str(error)})
                 return
@@ -1268,7 +1392,6 @@ class _Handler(BaseHTTPRequestHandler):
         global VIRTUAL_DISPLAY_ID
         route = urlparse(self.path)
         query = {k: v[0] for k, v in parse_qs(route.query).items()}
-        blocked = _injection_blocked() if route.path in ("/tap", "/swipe") else None
         try:
             if route.path == "/background/start":
                 package = bridge.target_package()
@@ -1308,12 +1431,6 @@ class _Handler(BaseHTTPRequestHandler):
                 except OSError:
                     raw = b"{}"
                 self._send_json(200, _ai_config_apply(raw))
-                return
-            if route.path == "/assets/refresh":
-                from . import asset_monitor
-                cfg = query.get("config", "oas1")
-                force = query.get("force", "1") not in ("0", "false", "False")
-                self._send_json(200, asset_monitor.refresh_async(_workspace(), cfg, force=force))
                 return
             if route.path == "/ota/config":
                 from . import ota_updater
@@ -1358,9 +1475,6 @@ class _Handler(BaseHTTPRequestHandler):
             if route.path == "/resume":
                 accepted = bridge.set_paused(False)
                 self._send_json(200, {"ok": accepted, "paused": bridge.paused()})
-                return
-            if route.path in ("/tap", "/swipe") and blocked:
-                self._send_json(200, blocked)
                 return
             if route.path == "/target":
                 package = query.get("package", "").strip()
@@ -1449,6 +1563,24 @@ class _Handler(BaseHTTPRequestHandler):
                 package = query.get("package", DEFAULT_TARGET_PACKAGE)
                 width = int(query.get("width", 1280))
                 height = int(query.get("height", 720))
+                # 优先隐藏虚拟屏（主屏完全看不到）；没授权就先弹一次授权，最多等 10s
+                try:
+                    if not bridge.hidden_ready():
+                        bridge.hidden_ensure()
+                        for _ in range(20):
+                            time.sleep(0.5)
+                            if bridge.hidden_ready():
+                                break
+                    if bridge.hidden_ready():
+                        hidden_id = bridge.hidden_display()
+                        bridge.display_ensure_app(package, width, height)
+                        VIRTUAL_DISPLAY_ID = hidden_id
+                        logger.info(f'[mobile] using hidden display {hidden_id}')
+                        self._send_json(200, {"ok": True, "display": hidden_id,
+                                              "package": package, "hidden": True})
+                        return
+                except Exception as error:  # noqa: BLE001
+                    logger.warning(f'[mobile] hidden display unavailable: {error!r}')
                 display = bridge.display_ensure_app(package, width, height)
                 if display >= 0:
                     VIRTUAL_DISPLAY_ID = display
@@ -1505,15 +1637,6 @@ class _Handler(BaseHTTPRequestHandler):
                 ok = bridge.shizuku_request_permission()
                 self._send_json(200, {"ok": ok, "status": bridge.shizuku_status()})
                 return
-            if route.path == "/tap":
-                ok = bridge.tap(int(query["x"]), int(query["y"]))
-                self._send_json(200, {"ok": ok})
-                return
-            if route.path == "/swipe":
-                ok = bridge.swipe(int(query["x1"]), int(query["y1"]),
-                                  int(query["x2"]), int(query["y2"]))
-                self._send_json(200, {"ok": ok})
-                return
         except KeyError as error:
             self._send_json(400, {"ok": False, "error": f"missing param: {error}"})
             return
@@ -1544,23 +1667,10 @@ def _serve_aiohttp(port: int) -> None:
     async def screenshot(request: web.Request) -> web.Response:
         loop = asyncio.get_running_loop()
         try:
-            data = await loop.run_in_executor(None, bridge.capture_png)
+            data = await loop.run_in_executor(None, _grab_frame_png)
         except Exception as error:  # noqa: BLE001
             return web.json_response({"ok": False, "error": str(error)}, status=503)
         return web.Response(body=data, content_type="image/png")
-
-    async def tap(request: web.Request) -> web.Response:
-        x = int(request.query["x"])
-        y = int(request.query["y"])
-        loop = asyncio.get_running_loop()
-        return web.json_response({"ok": await loop.run_in_executor(None, bridge.tap, x, y)})
-
-    async def swipe(request: web.Request) -> web.Response:
-        args = (int(request.query["x1"]), int(request.query["y1"]),
-                int(request.query["x2"]), int(request.query["y2"]))
-        loop = asyncio.get_running_loop()
-        return web.json_response(
-            {"ok": await loop.run_in_executor(None, bridge.swipe, *args)})
 
     async def state(request: web.Request) -> web.Response:
         return web.json_response(_state_payload())
@@ -1580,22 +1690,9 @@ def _serve_aiohttp(port: int) -> None:
         bridge.set_paused(False)
         return web.json_response({"ok": True, "paused": False})
 
-    async def guarded_tap(request: web.Request) -> web.Response:
-        blocked = _injection_blocked()
-        if blocked:
-            return web.json_response(blocked)
-        return await tap(request)
-
-    async def guarded_swipe(request: web.Request) -> web.Response:
-        blocked = _injection_blocked()
-        if blocked:
-            return web.json_response(blocked)
-        return await swipe(request)
-
     app = web.Application()
     app.add_routes([web.get("/health", health), web.get("/state", state),
                     web.get("/screenshot.png", screenshot),
-                    web.post("/tap", guarded_tap), web.post("/swipe", guarded_swipe),
                     web.post("/pause", pause), web.post("/resume", resume),
                     web.post("/target", target)])
 

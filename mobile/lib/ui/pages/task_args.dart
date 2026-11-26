@@ -128,7 +128,10 @@ class _TaskArgsPageState extends State<TaskArgsPage> {
   @override
   Widget build(BuildContext context) {
     final OasPalette p = context.oas;
-    final List<OasArgGroup> all = _groups ?? <OasArgGroup>[];
+    final List<OasArgGroup> all = (_groups ?? <OasArgGroup>[])
+        // 电脑专属的组（模拟器/桌面版/自动阵容/式神池扫描/工作台）手机端不显示
+        .where((OasArgGroup g) => !g.isHidden)
+        .toList(growable: false);
     final List<OasArgGroup> normal =
         all.where((OasArgGroup g) => !g.isAdvanced).toList(growable: false);
     final List<OasArgGroup> advanced =

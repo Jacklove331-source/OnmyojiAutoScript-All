@@ -1,4 +1,3 @@
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../api.dart';
@@ -15,70 +14,7 @@ class MonitorPage extends StatefulWidget {
 
 class _MonitorPageState extends State<MonitorPage> {
   final GlobalKey<LiveFrameState> _live = GlobalKey<LiveFrameState>();
-  final List<MobileMonitorFrame> _recent = <MobileMonitorFrame>[];
-  DateTime? _lastThumbnail;
   bool _paused = false;
-
-  void _received(MobileMonitorFrame frame) {
-    final DateTime now = DateTime.now();
-    if (_lastThumbnail != null &&
-        now.difference(_lastThumbnail!) < const Duration(seconds: 3)) return;
-    _lastThumbnail = now;
-    setState(() {
-      _recent.insert(0, frame);
-      if (_recent.length > 5) _recent.removeLast();
-    });
-  }
-
-  Future<void> _save(MobileMonitorFrame frame) async {
-    try {
-      final String stamp =
-          DateTime.now().toIso8601String().replaceAll(':', '-');
-      final String? path = await FilePicker.platform.saveFile(
-        dialogTitle: '保存 OAS 游戏截图',
-        fileName: 'OAS-$stamp.${frame.isJpeg ? 'jpg' : 'png'}',
-        bytes: frame.bytes,
-      );
-      if (mounted && path != null) OasToast.show(context, '图片已保存');
-    } catch (error) {
-      if (mounted) OasToast.show(context, '保存失败：$error');
-    }
-  }
-
-  Future<void> _preview(MobileMonitorFrame frame, {bool canSave = false}) =>
-      showDialog<void>(
-        context: context,
-        barrierColor: Colors.black87,
-        builder: (BuildContext dialog) => Dialog(
-          backgroundColor: const Color(0xff17131b),
-          insetPadding: const EdgeInsets.all(12),
-          child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-            AspectRatio(
-                aspectRatio: 16 / 9,
-                child: InteractiveViewer(
-                    maxScale: 5,
-                    child: Image.memory(frame.bytes, fit: BoxFit.contain))),
-            Padding(
-                padding: const EdgeInsets.all(10),
-                child: Row(children: <Widget>[
-                  Expanded(
-                      child: Text(
-                          frame.capturedAt == null
-                              ? '保存的画面'
-                              : '采集于 ${_time(frame.capturedAt!)}',
-                          style: const TextStyle(
-                              color: Colors.white70, fontSize: 12))),
-                  if (canSave)
-                    TextButton(
-                        onPressed: () => _save(frame),
-                        child: const Text('保存图片')),
-                  TextButton(
-                      onPressed: () => Navigator.of(dialog).pop(),
-                      child: const Text('关闭')),
-                ])),
-          ]),
-        ),
-      );
 
   Future<void> _fullscreen() async {
     _live.currentState?.setPaused(true);
@@ -89,9 +25,6 @@ class _MonitorPageState extends State<MonitorPage> {
         builder: (BuildContext dialog) => const _TakeoverScreen());
     if (mounted) _live.currentState?.setPaused(_paused);
   }
-
-  static String _time(DateTime value) =>
-      '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}:${value.second.toString().padLeft(2, '0')}';
 
   @override
   Widget build(BuildContext context) {
@@ -118,7 +51,6 @@ class _MonitorPageState extends State<MonitorPage> {
                     aspectRatio: 16 / 9,
                     child: LiveFrame(
                         key: _live,
-                        onFrame: _received,
                         interactive: true,
                         showStatusOverlay: false))),
             const SizedBox(height: 10),
@@ -146,43 +78,6 @@ class _MonitorPageState extends State<MonitorPage> {
             const OasMonitorLogPanel(),
             const SizedBox(height: 14),
             const _AiStatusCard(),
-            const SizedBox(height: 16),
-            const OasSectionHeader(
-                title: '最近画面', trailing: '每 3 秒留一帧 · 最近 5 张'),
-            const SizedBox(height: 8),
-            if (_recent.isEmpty)
-              OasCard(
-                  child: Text('收到游戏画面后显示记录',
-                      style: TextStyle(color: p.inkDim, fontSize: 12)))
-            else
-              SizedBox(
-                  height: 94,
-                  child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _recent.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 8),
-                      itemBuilder: (_, int index) {
-                        final MobileMonitorFrame frame = _recent[index];
-                        return GestureDetector(
-                            onTap: () => _preview(frame, canSave: true),
-                            child: SizedBox(
-                                width: 128,
-                                child: Column(children: <Widget>[
-                                  ClipRRect(
-                                      borderRadius: BorderRadius.circular(6),
-                                      child: AspectRatio(
-                                          aspectRatio: 16 / 9,
-                                          child: Image.memory(frame.bytes,
-                                              fit: BoxFit.contain))),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                      frame.capturedAt == null
-                                          ? '已接收'
-                                          : _time(frame.capturedAt!),
-                                      style: TextStyle(
-                                          color: p.inkDim, fontSize: 10)),
-                                ])));
-                      })),
           ],
         ));
   }

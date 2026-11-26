@@ -1,8 +1,10 @@
-"""Kotlin 执行层桥接：截图 / 点击 / 滑动。
+"""Kotlin 执行层桥接：截图 / 点击 / 滑动，全部走 Shizuku（虚拟屏 + shell）。
 
-在真机上由 Chaquopy 的 `java` 模块直接调用 `com.oas.oasx.OasAccessibilityService`
-的静态方法；在桌面端（开发机无 Android）导入本模块会走 fallback，返回明确的不可用错误，
-避免把桌面环境的结果当成真机结果。
+在真机上由 Chaquopy 的 `java` 模块调用 Kotlin 静态方法；桌面端（开发机无 Android）导入本模块
+会走 fallback，返回明确的不可用错误，避免把桌面环境的结果当成真机结果。
+
+2026-11-26：无障碍服务（OasAccessibilityService）整体移除。任务、监控、点击、截图四条实际
+路径都已经走 Shizuku 虚拟屏，无障碍只在 Shizuku 失效时做兜底，属于"装饰性权限"。
 """
 
 from __future__ import annotations
@@ -13,82 +15,27 @@ import time
 from module.logger import logger
 
 _JAVA_IMPORT_ERROR = None
-_SERVICE = None
 DEFAULT_TARGET_PACKAGE = os.environ.get("OAS_TARGET_PACKAGE", "com.netease.onmyoji")
 _TARGET_PACKAGE = DEFAULT_TARGET_PACKAGE
 
 try:  # 只有在 Android(Chaquopy) 里才存在 java 模块
     from java import jclass  # type: ignore
-
-    _SERVICE = jclass("com.oas.oasx.OasAccessibilityService")
 except Exception as error:  # noqa: BLE001 - 桌面环境预期会失败
     _JAVA_IMPORT_ERROR = error
-    _SERVICE = None
 
 
 def available() -> bool:
-    """执行层是否可用（Android + 无障碍服务已连接）。"""
-    if _SERVICE is None:
-        return False
+    """执行层是否可用（Android + Shizuku 已授权）。"""
     try:
-        return bool(_SERVICE.isServiceReady())
+        return shizuku_available()
     except Exception:  # noqa: BLE001
         return False
 
 
 def unavailable_reason() -> str:
-    if _SERVICE is None:
+    if _JAVA_IMPORT_ERROR is not None:
         return f"not on Android/Chaquopy: {_JAVA_IMPORT_ERROR!r}"
-    return "accessibility service not connected (user must enable it in system settings)"
-
-
-def _su_binary() -> str:
-    """设备是否有 su（模拟器一般有，真机没有）。"""
-    for candidate in ("/system/bin/su", "/system/xbin/su", "/sbin/su", "/su/bin/su"):
-        if os.path.exists(candidate):
-            return candidate
-    return ""
-
-
-def capture_via_su() -> bytes:
-    """有 root 时走 Kotlin 侧的 `su -c screencap -p`（capturePngRoot）。
-
-    为什么不用 Python subprocess：Chaquopy 里 exec su 会卡到超时且拿不到文件；
-    Kotlin ProcessBuilder 同样有 SELinux 限制，所以这条失败就安静回落到无障碍。
-    """
-    if _SERVICE is None:
-        return b""
-    try:
-        data = _SERVICE.capturePngRoot()
-    except Exception:  # noqa: BLE001
-        return b""
-    if data is None:
-        return b""
-    try:
-        raw = bytes(data)
-    except Exception:  # noqa: BLE001
-        return b""
-    return raw if raw[:1] == b"\x89" else b""
-
-
-_ROOT_CAPTURE_FLAG = None
-
-
-def root_capture_enabled() -> bool:
-    """root 截图默认关闭。
-
-    调用 su 会在设备上弹「请求超级用户权限」对话框，用户明令零弹窗，
-    所以只有存在 files/su_capture.on 时才走 root 通道（用户自己放的开关文件）。
-    """
-    global _ROOT_CAPTURE_FLAG
-    if _ROOT_CAPTURE_FLAG is None:
-        try:
-            import os
-
-            _ROOT_CAPTURE_FLAG = os.path.exists(os.path.join(_files_dir(), "su_capture.on"))
-        except Exception:  # noqa: BLE001
-            _ROOT_CAPTURE_FLAG = False
-    return bool(_ROOT_CAPTURE_FLAG)
+    return "Shizuku 未授权或未启动（去「我的 → 权限状态」里授权）"
 
 
 def _files_dir() -> str:
@@ -101,37 +48,6 @@ def _files_dir() -> str:
         return ""
 
 
-def capture_png() -> bytes:
-    """截取当前屏幕，返回 PNG 字节。失败抛 RuntimeError 并说明原因。
-
-    顺序：无障碍（不弹窗）→ 只有在用户显式开启 root 截图时才试 su。
-    """
-    if _SERVICE is not None:
-        try:
-            data = _SERVICE.capturePng()
-        except Exception:  # noqa: BLE001
-            data = None
-        if data is not None:
-            return bytes(data)
-    if root_capture_enabled():
-        rooted = capture_via_su()
-        if rooted:
-            return rooted
-    raise RuntimeError(f"screenshot unavailable: {unavailable_reason()}")
-
-
-def tap(x: int, y: int, duration_ms: int = 60) -> bool:
-    if _SERVICE is None:
-        raise RuntimeError(f"tap unavailable: {unavailable_reason()}")
-    return bool(_SERVICE.tap(int(x), int(y), int(duration_ms)))
-
-
-def swipe(x1: int, y1: int, x2: int, y2: int, duration_ms: int = 300) -> bool:
-    if _SERVICE is None:
-        raise RuntimeError(f"swipe unavailable: {unavailable_reason()}")
-    return bool(_SERVICE.swipe(int(x1), int(y1), int(x2), int(y2), int(duration_ms)))
-
-
 # ---------------------------------------------------------------- 后台运行相关
 
 try:  # 前台服务类（Chaquopy 里可用；桌面环境为 None）
@@ -141,7 +57,7 @@ except Exception:  # noqa: BLE001
 
 
 def foreground_via_shell() -> str:
-    """用 Shizuku 跑 dumpsys 取前台包名（无障碍没绑定时用，不弹任何窗）。"""
+    """用 Shizuku 跑 dumpsys 取前台包名（不弹任何窗）。"""
     if _SHIZUKU is None:
         return ""
     try:
@@ -168,28 +84,14 @@ def foreground_via_shell() -> str:
 
 
 def foreground_package() -> str:
-    """当前前台应用包名（无障碍事件更新）。"""
-    if _SERVICE is None:
-        return ""
-    try:
-        return str(_SERVICE.currentForegroundPackage())
-    except Exception:  # noqa: BLE001
-        try:
-            return str(_SERVICE.foregroundPackage)
-        except Exception:  # noqa: BLE001
-            return ""
+    """当前前台应用包名（Shizuku dumpsys，不弹任何窗）。"""
+    return foreground_via_shell()
 
 
 def set_target_package(package: str) -> None:
     """设置目标游戏包名（默认阴阳师），用于判断「游戏是否在前台」。"""
     global _TARGET_PACKAGE
     _TARGET_PACKAGE = str(package or DEFAULT_TARGET_PACKAGE)
-    if _SERVICE is None:
-        return
-    try:
-        _SERVICE.setTargetPackage(package)
-    except Exception:  # noqa: BLE001
-        pass
 
 
 def target_package() -> str:
@@ -197,13 +99,9 @@ def target_package() -> str:
 
 
 def is_target_foreground() -> bool:
-    """目标游戏是否在前台——后台运行时用它决定能不能注入手势。"""
-    if _SERVICE is None:
-        return False
-    try:
-        return bool(_SERVICE.isTargetForeground())
-    except Exception:  # noqa: BLE001
-        return False
+    """目标游戏是否在前台——按 Shizuku 查到的前台包名判断。"""
+    current = foreground_package()
+    return bool(current) and current == target_package()
 
 
 def service_running() -> bool:
@@ -361,12 +259,12 @@ def display_screenshot(display_id: int) -> bytes:
         stream_frame = vdstream_capture(85) or vdstream_jpeg()
         if stream_frame:
             return stream_frame
-    # 没有真正的虚拟屏（-1）时，screencap -d -1 会永久阻塞；直接用普通截图通道
+    # 没有真正的虚拟屏（-1）时 screencap -d -1 会永久阻塞，直接返回空帧
     if display_id < 0:
-        return capture_png()
+        return b""
     if _SHIZUKU is None:
-        # 没有 Shizuku 也要能干活：回落无障碍/root 截图
-        return capture_png()
+        # 无障碍执行层已移除：没有 Shizuku 就没有截图通道，交给上层如实报错
+        return b""
     data = _capture_to_file(display_id)
     if data:
         return data
@@ -383,7 +281,7 @@ def capture_display_png(display_id: int) -> bytes:
             if stream_frame:
                 return stream_frame
     if display_id < 0:
-        return capture_png()
+        return b""
     try:
         if hidden_ready() and hidden_display() == display_id:
             data = hidden_screenshot()
@@ -450,7 +348,6 @@ def display_keyevent(display_id: int, keycode: int) -> bool:
 
 def display_ensure_app(package: str, width: int = 1280, height: int = 720) -> int:
     """确保目标 App 跑在虚拟屏上（建屏→启动→搬到虚拟屏），返回 displayId；失败 -1。"""
-    # 没有 Shizuku 就没有虚拟屏：退化成"直接拉起游戏"，返回 -1 让上层走普通截图/点击
     if _SHIZUKU is None:
         try:
             from oas_mobile.shizuku_exec import exec_shell
@@ -477,7 +374,7 @@ def display_ensure_app(package: str, width: int = 1280, height: int = 720) -> in
             display_move_task(package, hidden)
             return hidden
         # 禁止回落到 settings put global overlay_display_devices：用户明确不允许
-        # 改系统设置。没有 Binder/MediaProjection 屏时由上层走无障碍截图。
+        # 改系统设置。没有 Binder/MediaProjection 屏时上层拿不到帧，会如实报错。
         return -1
     except Exception:  # noqa: BLE001
         return -1
@@ -770,7 +667,7 @@ def hidden_release() -> bool:
 
 
 def wait_ready(timeout_s: float = 30.0) -> bool:
-    """等服务连接（用户开无障碍后通常几秒内就绪）。"""
+    """等 Shizuku 授权就绪（用户点完授权通常几秒内可用）。"""
     deadline = time.monotonic() + timeout_s
     while time.monotonic() < deadline:
         if available():

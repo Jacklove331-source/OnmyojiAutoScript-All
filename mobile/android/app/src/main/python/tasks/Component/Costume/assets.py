@@ -250,4 +250,8 @@ class CostumeAssets:
 	# description 
 	I_PET_HOUSE_9 = RuleImage(roi_front=(888,327,40,35), roi_back=(730,316,440,57), threshold=0.8, method="Template matching", file="./tasks/Component/Costume/main9/main9_pet_house_9.png")
 
-
+	# 结界皮肤：神安眠处（与电脑端一致）
+	I_REALM_SHIN_6 = RuleImage(roi_front=(362,486,56,60), roi_back=(300,430,180,170), threshold=0.85, method="Template matching", file="./tasks/Component/Costume/realm6/realm6_realm_shin_6.png")
+	I_SHI_CARD_6 = RuleImage(roi_front=(758,492,40,82), roi_back=(703,448,150,170), threshold=0.6, method="Template matching", file="./tasks/Component/Costume/realm6/realm6_shi_card_6.png")
+	I_SHI_GROWN_6 = RuleImage(roi_front=(632,496,34,76), roi_back=(580,440,150,170), threshold=0.6, method="Template matching", file="./tasks/Component/Costume/realm6/realm6_shi_grown_6.png")
+	I_SHI_DEFENSE_6 = RuleImage(roi_front=(466,492,40,82), roi_back=(411,448,150,170), threshold=0.7, method="Template matching", file="./tasks/Component/Costume/realm6/realm6_shi_defense_6.png")
