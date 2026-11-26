@@ -7,15 +7,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oasx/ui/api.dart';
 import 'package:oasx/ui/pages/home.dart';
+import 'package:oasx/ui/pages/ota_card.dart';
 
 class HomeAdapter implements HttpClientAdapter {
   HomeAdapter({this.lastPlan = const <String>[]});
 
   final List<String> lastPlan;
+  int otaCheckCalls = 0;
 
   @override
   Future<ResponseBody> fetch(RequestOptions options,
       Stream<Uint8List>? requestStream, Future<void>? cancelFuture) async {
+    if (options.uri.path == '/ota/check') {
+      otaCheckCalls++;
+    }
     const List<String> tasks = <String>[
       'Restart', 'AreaBoss', 'GoldYoukai', 'Nian', 'RealmRaid', 'KekkaiUtilize',
       'KekkaiActivation', 'DemonEncounter', 'DailyTrifles', 'TalismanPass', 'Pets',
@@ -106,12 +111,22 @@ void main() {
       (WidgetTester tester) async {
     await showHome(tester);
     final Finder expand = find.textContaining('展开全部 24 项排队顺序');
-    await tester.drag(find.byType(ListView).first, const Offset(0, -450));
+    await tester.drag(find.byType(ListView).first, const Offset(0, -520));
     await tester.pumpAndSettle();
     expect(expand, findsOneWidget);
     await tester.tap(expand);
     await tester.pumpAndSettle();
     expect(find.text('收起排队列表 ▴'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('home page renders update card and auto checks on launch',
+      (WidgetTester tester) async {
+    OasOtaCard.resetAutoCheckForTest();
+    final HomeAdapter adapter = HomeAdapter();
+    await showHome(tester, adapter: adapter);
+    expect(find.text('在线更新'), findsOneWidget);
+    expect(adapter.otaCheckCalls, 1);
     expect(tester.takeException(), isNull);
   });
 

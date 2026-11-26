@@ -638,12 +638,31 @@ def _purge_task_modules() -> list:
 
 
 def activate_overlay(workspace: str, reload_modules: bool = False) -> dict:
-    """把覆盖层目录挂载到 ``sys.path[0]``（或在不活跃时移除）。"""
+    """把覆盖层目录挂载到 ``sys.path[0]``（或在不活跃/已被新版 APK 超越时移除）。"""
     with _LOCK:
         overlay = _overlay_dir(workspace)
         applied_path = overlay / APPLIED_MANIFEST_NAME
         active = overlay.is_dir() and applied_path.is_file()
         applied = _read_applied_manifest(overlay) if active else {}
+
+        # 若用户已覆盖安装更高 build 的 APK，旧 APK 时期下载的热更包可能包含陈旧代码，
+        # 自动停用旧覆盖层（移至 prev 备份），优先使用新 APK 内置文件。
+        cur_build = _current_build_number()
+        if active and cur_build > 0:
+            try:
+                applied_build = int(applied.get("apk_build") or 0)
+            except (TypeError, ValueError):
+                applied_build = 0
+            if applied_build < cur_build:
+                prev = _prev_dir(workspace)
+                try:
+                    if prev.exists():
+                        shutil.rmtree(prev, ignore_errors=True)
+                    shutil.move(str(overlay), str(prev))
+                except OSError:
+                    shutil.rmtree(overlay, ignore_errors=True)
+                active = False
+                applied = {}
 
         entry = str(overlay)
         try:
@@ -962,6 +981,7 @@ def _apply_update_locked(workspace: str, zip_bytes, manifest, cfg: dict) -> dict
             "file": file_path,
             "file_count": file_count,
             "source": str(manifest.get("source") or ""),
+            "apk_build": _current_build_number(),
         }
         (staging / APPLIED_MANIFEST_NAME).write_text(
             json.dumps(applied, ensure_ascii=False, indent=2) + "\n",

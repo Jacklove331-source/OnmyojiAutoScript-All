@@ -7,6 +7,7 @@ import '../task_names.dart';
 import '../widgets.dart';
 import 'assets_card.dart';
 import 'ai_recovery.dart';
+import 'ota_card.dart';
 import 'task_args.dart';
 
 /// ① 庭院：一眼看清状态，主按钮只有一个；下方实时展示与电脑端 OAS 一致的「任务排序」。
@@ -358,7 +359,13 @@ class _HomePageState extends State<HomePage> {
                 ),
               ],
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 12),
+            OasOtaCard(
+              api: _api,
+              compact: true,
+              autoCheckOnLaunch: true,
+            ),
+            const SizedBox(height: 14),
             _queueSectionHeader(p),
             const SizedBox(height: 8),
             _queueSectionBody(context, p),

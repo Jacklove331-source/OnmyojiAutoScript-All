@@ -1,21 +1,21 @@
 {
-  "version": "2026.11.26.181444",
+  "version": "2026.11.26.185350",
   "source": "mobile",
-  "note": "0.3.5+81: 移除无障碍执行层；全局配置与神安眠处结界皮肤中文下拉；每3任务自动刷新资产；AI自愈明细",
-  "updated_at": "2026-11-26T18:14:44",
+  "note": "0.3.5+82: 覆盖安装新APK自动停用旧热更缓存，确保新皮肤等代码即时生效",
+  "updated_at": "2026-11-26T18:53:50",
   "file": "datapack/oas-patch.zip",
-  "size_bytes": 26402064,
+  "size_bytes": 26402395,
   "file_count": 3550,
-  "sha256": "9ce2a7bfe120bf47a52412080e015811ddc65ddd0e565a45979c42a91ee23d39",
+  "sha256": "957cb73c5b2bdf77a29dd6509b0cbffd5dc49d56893b9379e66679e5a5bd18e0",
   "apk": {
     "version_name": "0.3.5",
-    "build_number": 81,
-    "tag": "v0.3.5-b81",
-    "file_name": "OASX-Mobile-0.3.5-b81-arm64-v8a.apk",
-    "size_bytes": 156614054,
-    "sha256": "dcac156ced72ab55572cd1b217ee566d1783ddd1497fb86a699e5a9d5d257cb4",
-    "download_url": "https://github.com/Jacklove331-source/OnmyojiAutoScript-All/releases/download/v0.3.5-b81/OASX-Mobile-0.3.5-b81-arm64-v8a.apk",
-    "note": "移除无障碍执行层；新增全局配置与神安眠处结界皮肤中文下拉；每3任务自动刷新资产；支持昵称编辑与AI自愈明细；6项货币与64项专属任务图标",
-    "updated_at": "2026-11-26T18:14:44"
+    "build_number": 82,
+    "tag": "v0.3.5-b82",
+    "file_name": "OASX-Mobile-0.3.5-b82-arm64-v8a.apk",
+    "size_bytes": 156613418,
+    "sha256": "5f942052fb31ed29b3ce9268f3be24b12f98f4a0d432a8956b4aaa7876dd7767",
+    "download_url": "https://github.com/Jacklove331-source/OnmyojiAutoScript-All/releases/download/v0.3.5-b82/OASX-Mobile-0.3.5-b82-arm64-v8a.apk",
+    "note": "更新卡片移至庭院首页并支持启动自动检测更新；参数页皮肤与分组全面显示中文不露代码；修复升级APK后旧热更覆盖问题",
+    "updated_at": "2026-11-26T18:53:50"
   }
 }

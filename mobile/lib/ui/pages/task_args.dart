@@ -69,10 +69,12 @@ class _TaskArgsPageState extends State<TaskArgsPage> {
       // 用 OAS 官方词表把英文键换成中文（缺译文的键保留原样）
       final Set<String> keys = <String>{};
       for (final OasArgGroup group in g) {
+        keys.add(group.key);
         keys.add(group.title);
         for (final OasArgField f in group.fields) {
           keys.add(f.title);
           keys.add(f.description);
+          if (f.valueText.isNotEmpty) keys.add(f.valueText);
         }
       }
       final Map<String, String> zh = await OasApi.i.i18n(keys.toList());
@@ -271,13 +273,16 @@ class _TaskArgsPageState extends State<TaskArgsPage> {
   }
 
   Widget _groupCard(BuildContext context, OasPalette p, OasArgGroup g) {
+    final String groupTitle = _t(g.title, allowHelp: false);
+    final String shownGroupTitle =
+        groupTitle != g.title ? groupTitle : _t(g.key, allowHelp: false);
     return OasCard(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
-            g.title,
+            shownGroupTitle == g.key ? g.title : shownGroupTitle,
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: p.inkSoft),
           ),
           const SizedBox(height: 2),
@@ -333,7 +338,9 @@ class _TaskArgsPageState extends State<TaskArgsPage> {
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 150),
               child: Text(
-                f.valueText.isEmpty ? '—' : f.valueText,
+                f.displayValueText.isEmpty
+                    ? '—'
+                    : _t(f.displayValueText, allowHelp: false),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: OasFont.song(size: 12.5, color: p.ink, weight: FontWeight.w600),
@@ -436,10 +443,8 @@ class _TaskArgsPageState extends State<TaskArgsPage> {
                   for (final MapEntry<String, String> e in f.options.entries)
                     ListTile(
                       dense: true,
-                      title: Text(e.value,
-                          style: OasFont.song(size: 13, color: p.ink)),
-                      subtitle: Text(e.key,
-                          style: TextStyle(fontSize: 10, color: p.inkDim)),
+                      title: Text(_t(e.value, allowHelp: false),
+                          style: OasFont.song(size: 13.5, color: p.ink)),
                       trailing: f.valueText == e.key
                           ? Icon(Icons.check, size: 16, color: p.jade)
                           : null,

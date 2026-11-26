@@ -378,6 +378,29 @@ class TestOtaUpdater(unittest.TestCase):
         from oas_mobile import asset_monitor as _restored  # noqa: F401
         self.assertIsNotNone(_restored)
 
+    def test_activate_overlay_invalidates_stale_overlay_after_apk_upgrade(self):
+        # 覆盖安装更高 build 的 APK 后，旧 APK 时期下载的热更包自动停用，不盖住新 APK 内置代码
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as ws:
+            z1, sha1 = self._make_zip({"tasks/test_mod.py": b"OLD = 1\n"})
+            with patch.object(ota_updater, "_current_build_number", return_value=80):
+                ok = ota_updater.apply_update(
+                    ws,
+                    zip_bytes=z1,
+                    manifest={"version": "2026.11.26.100000", "sha256": sha1, "file": "datapack/oas-patch.zip"},
+                )
+                self.assertTrue(ok["ok"])
+            # 升级到 build 82 后重新激活，旧覆盖层应自动失效并挪到 prev
+            with patch.object(ota_updater, "_current_build_number", return_value=82):
+                res = ota_updater.activate_overlay(ws, reload_modules=False)
+                self.assertTrue(res["ok"])
+                self.assertFalse(res["active"])
+                self.assertFalse((Path(ws) / "ota_overlay").exists())
+                self.assertTrue((Path(ws) / "ota_overlay_prev").exists())
+            if str(Path(ws) / "ota_overlay") in sys.path:
+                sys.path.remove(str(Path(ws) / "ota_overlay"))
+
 
 class TestDeviceGuard(unittest.TestCase):
     def test_time_window_same_day_and_overnight(self):

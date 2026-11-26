@@ -38,9 +38,28 @@ const _OtaPreset _kGitCodePreset = _OtaPreset(
 );
 
 class OasOtaCard extends StatefulWidget {
-  const OasOtaCard({super.key, this.api});
+  const OasOtaCard({
+    super.key,
+    this.api,
+    this.compact = false,
+    this.autoCheckOnLaunch = true,
+  });
 
   final OasApi? api;
+
+  /// 庭院首页使用紧凑可折叠模式：平时收起为一行清爽条，发现新版本或正在下载时自动展开。
+  final bool compact;
+
+  /// 每次启动 OAS Mobile 时自动静默检测一次更新。
+  final bool autoCheckOnLaunch;
+
+  /// 进程内防重标记：确保每次 App 启动自动检测一次，切页不重复打网络。
+  static bool _autoCheckedThisLaunch = false;
+
+  @visibleForTesting
+  static void resetAutoCheckForTest() {
+    _autoCheckedThisLaunch = false;
+  }
 
   @override
   State<OasOtaCard> createState() => _OasOtaCardState();
@@ -52,15 +71,27 @@ class _OasOtaCardState extends State<OasOtaCard> {
   Map<String, dynamic> _status = {};
   Map<String, dynamic> _apkDownload = {};
   bool _loading = true;
+  bool _checking = false;
   bool _applying = false;
   bool _switching = false;
+  bool _expanded = false;
   String? _error;
   Timer? _apkPoll;
 
   @override
   void initState() {
     super.initState();
-    _refresh();
+    _expanded = !widget.compact;
+    _initAndAutoCheck();
+  }
+
+  Future<void> _initAndAutoCheck() async {
+    await _refresh();
+    if (!mounted) return;
+    if (widget.autoCheckOnLaunch && !OasOtaCard._autoCheckedThisLaunch) {
+      OasOtaCard._autoCheckedThisLaunch = true;
+      await _check(silent: true);
+    }
   }
 
   @override
@@ -209,10 +240,12 @@ class _OasOtaCardState extends State<OasOtaCard> {
       ..showSnackBar(SnackBar(content: Text(message)));
   }
 
-  Future<void> _refresh() async {
-    setState(() {
-      _loading = true;
-    });
+  Future<void> _refresh({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _loading = true;
+      });
+    }
 
     try {
       final result = await _api.otaStatus();
@@ -223,13 +256,16 @@ class _OasOtaCardState extends State<OasOtaCard> {
         _apkDownload = _asMap(_status['apk_download']);
         _error = null;
         _loading = false;
+        if (_hasApkUpdate || _hasUpdate || _apkDownloading || _apkReady) {
+          _expanded = true;
+        }
       });
       if (_apkDownloading) _startApkPolling();
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _status = {};
-        _error = '$e';
+        _error = silent ? null : '$e';
         _loading = false;
       });
     }
@@ -384,29 +420,44 @@ class _OasOtaCardState extends State<OasOtaCard> {
     }
   }
 
-  Future<void> _check() async {
+  Future<void> _check({bool silent = false}) async {
+    if (_checking) return;
+    setState(() => _checking = true);
     try {
       final result = await _api.otaCheck();
+      if (!mounted) return;
       final map = _asMap(result);
       if (map['ok'] == false) {
-        _toast('检查失败：${map['error'] ?? '网络错误'}');
+        if (!silent) {
+          _toast('检查失败：${map['error'] ?? '网络错误'}');
+        }
         return;
       }
 
-      if (map['has_update'] == true || map['hasUpdate'] == true) {
+      await _refresh(silent: silent);
+      if (!mounted) return;
+
+      if (_hasApkUpdate) {
+        final String v = '${_apkUpdate['version'] ?? ''}'.trim();
+        _toast(v.isNotEmpty ? '发现新版安装包 $v，可一键更新' : '发现新版安装包，可一键更新');
+      } else if (map['has_update'] == true || map['hasUpdate'] == true || _hasUpdate) {
         final Map<String, dynamic> rem = _asMap(map['remote']);
         final version = rem['version']?.toString() ??
             map['version']?.toString() ??
             _remoteManifest['version']?.toString() ??
             '新版本';
         _toast('发现新数据包 $version');
-      } else {
-        _toast('数据包已是最新');
+      } else if (!silent) {
+        _toast('已是最新版本');
       }
-
-      await _refresh();
     } catch (e) {
-      _toast('检查失败：$e');
+      if (!silent) {
+        _toast('检查失败：$e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _checking = false);
+      }
     }
   }
 
@@ -480,44 +531,103 @@ class _OasOtaCardState extends State<OasOtaCard> {
     final OasPalette p = context.oas;
     final remote = _remoteManifest;
     final hasUpdate = _hasUpdate;
+    final bool hasAnyUpdate = _hasApkUpdate || hasUpdate || _apkDownloading || _apkReady;
+    final bool showBody = !widget.compact || _expanded || hasAnyUpdate;
 
     final subtitleText =
         '仓库：$_repo ($_branch) · 当前版本：${_installedVersion.isEmpty ? "内置版" : _installedVersion}';
 
+    final String compactHint = _checking
+        ? '正在自动检测更新…'
+        : (_hasApkUpdate
+            ? '发现新版安装包 ${_apkUpdate['version'] ?? ''}'
+            : (hasUpdate
+                ? '发现新数据包 ${remote['version'] ?? ''}'
+                : '$_sourceBadgeText · 已是最新'));
+
     return OasCard(
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.fromLTRB(12, showBody ? 12 : 9, 12, showBody ? 12 : 9),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '在线更新（数据包热更 / APK 自更新）',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.bold),
-                ),
-              ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: p.jade.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  _sourceBadgeText,
-                  style: TextStyle(
-                    color: p.jade,
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
+          InkWell(
+            onTap: widget.compact
+                ? () => setState(() => _expanded = !_expanded)
+                : null,
+            borderRadius: BorderRadius.circular(8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              widget.compact ? '在线更新' : '在线更新（数据包热更 / APK 自更新）',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: widget.compact ? 13 : 15,
+                                fontWeight: FontWeight.w700,
+                                color: p.ink,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 7, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: (hasAnyUpdate ? p.gold : p.jade)
+                                  .withOpacity(0.14),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Text(
+                              hasAnyUpdate ? '有更新' : _sourceBadgeText,
+                              style: TextStyle(
+                                color: hasAnyUpdate ? p.gold : p.jade,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (widget.compact && !showBody) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          compactHint,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 10.5, color: p.inkDim),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-              ),
-            ],
+                if (widget.compact && !showBody) ...[
+                  const SizedBox(width: 6),
+                  OasPill(
+                    text: _checking ? '检测中' : '检查',
+                    color: p.gold,
+                    outlined: true,
+                    onTap: (_loading || _checking) ? null : () => _check(),
+                  ),
+                ],
+                if (widget.compact) ...[
+                  const SizedBox(width: 4),
+                  Icon(
+                    showBody ? Icons.expand_less : Icons.expand_more,
+                    size: 18,
+                    color: p.inkDim,
+                  ),
+                ],
+              ],
+            ),
           ),
+          if (showBody) ...[
           const SizedBox(height: 10),
           // 更新方式二选一：GitHub 或 GitCode（国内）
           Row(
@@ -647,8 +757,8 @@ class _OasOtaCardState extends State<OasOtaCard> {
                 child: const Text('自定义设置'),
               ),
               OutlinedButton(
-                onPressed: _loading ? null : _check,
-                child: const Text('检查更新'),
+                onPressed: (_loading || _checking) ? null : () => _check(),
+                child: Text(_checking ? '检测中…' : '检查更新'),
               ),
               FilledButton(
                 onPressed: (_loading || _applying) ? null : _apply,
@@ -667,6 +777,7 @@ class _OasOtaCardState extends State<OasOtaCard> {
                 ),
             ],
           ),
+          ],
         ],
       ),
     );

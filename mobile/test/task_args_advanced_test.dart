@@ -48,4 +48,24 @@ void main() {
     expect(OasArgGroup.kAdvancedArgGroups, <String>{'scheduler'});
     expect(OasArgGroup.kHiddenArgGroups.length, 5);
   });
+
+  test('皮肤与全局分组标题及枚举当前值全部显示中文而非内部代码', () {
+    expect(oasGroupTitle('costume_config'), '皮肤配置');
+    expect(oasGroupTitle('team_flow'), '团队流程');
+    expect(oasGroupTitle('emergency'), '紧急停止');
+    const OasArgField field = OasArgField(
+      name: 'costume_main_type',
+      title: '庭院皮肤',
+      description: '',
+      value: 'costume_main',
+      defaultValue: 'costume_main',
+      type: 'enum',
+      options: <String, String>{
+        'costume_main': '初语谧景',
+        'costume_main_1': '织梦莲庭',
+      },
+    );
+    expect(field.valueText, 'costume_main');
+    expect(field.displayValueText, '初语谧景');
+  });
 }

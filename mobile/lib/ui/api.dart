@@ -807,6 +807,15 @@ class OasArgField {
 
   String get valueText => value?.toString() ?? '';
 
+  /// 给用户看的当前值文本：优先把枚举内部存值（如 costume_main）映射为中文标签（如 初语谧景）。
+  String get displayValueText {
+    final String raw = valueText;
+    if (raw.isEmpty) return '';
+    final String? mapped = options[raw];
+    if (mapped != null && mapped.isNotEmpty) return mapped;
+    return raw;
+  }
+
   /// 后端有一部分 description 是 UTF-8 被当 latin-1 的乱码（如 åå¤ç±»å），
   /// 这种直接丢弃，别把乱码显示给用户。
   String get cleanDescription {
@@ -899,6 +908,13 @@ const Map<String, String> _kFieldTitles = <String, String>{
 String oasGroupTitle(String key) {
   const Map<String, String> exact = <String, String>{
     'scheduler': '调度（高级）',
+    'costume_config': '皮肤配置',
+    'team_flow': '团队流程',
+    'emergency': '紧急停止',
+    'optimization': '脚本优化',
+    'error': '异常处理',
+    'script': '脚本配置',
+    'global_game': '全局配置',
     'invite_config': '组队设置',
     'general_battle_config': '战斗通用',
     'switch_soul': '独立御魂切换（未启用队伍预设时使用）',
