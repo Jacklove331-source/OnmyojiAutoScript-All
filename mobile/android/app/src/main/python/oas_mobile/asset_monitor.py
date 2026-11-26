@@ -293,12 +293,25 @@ def looks_courtyard(rows: list[dict]) -> bool:
     if not isinstance(rows, list):
         return False
 
+    texts = []
     for row in rows:
         if not isinstance(row, dict):
             continue
         text = str(row.get("text") or "")
         if "探索" in text or "町中" in text:
             return True
+        texts.append(text)
+
+    joined = "".join(texts)
+    # 竖排灯笼常把「探」「索」拆成两行，或底部卷轴展开时含召唤/珍旅居/纳物库/式神录等庭院标志
+    if "探" in joined and "索" in joined:
+        return True
+    courtyard_hits = sum(
+        1 for kw in ("召唤", "加成", "珍旅居", "纳物库", "式神录", "阴阳寮", "花合战", "福运昌隆")
+        if kw in joined
+    )
+    if courtyard_hits >= 2:
+        return True
 
     values = extract_top_values(rows)
     if len(values) >= 3:
@@ -307,6 +320,22 @@ def looks_courtyard(rows: list[dict]) -> bool:
         if first.endswith("万") and third.endswith("万"):
             return True
 
+    return False
+
+
+def _is_courtyard_frame(rgb, rows: list[dict]) -> bool:
+    """结合 OAS 原生庭院模板匹配与 OCR 启发式共同判定是否在庭院。"""
+    if looks_courtyard(rows):
+        return True
+    if rgb is not None:
+        try:
+            from . import login as login_mod
+
+            fn = getattr(login_mod, "_courtyard_visible", None)
+            if callable(fn) and fn(_normalize_1280(rgb)):
+                return True
+        except Exception:  # noqa: BLE001
+            pass
     return False
 
 
@@ -782,7 +811,7 @@ def _read_courtyard_slots(rgb, fsize: tuple[int, int]) -> dict[str, dict[str, An
 def _try_return_to_courtyard(bridge_mod: Any, disp: int, rgb, fsize: tuple[int, int], rows: list[dict], max_taps: int = 4):
     """只读方式尝试安全退回庭院（遇到退出确认框自动点取消）。"""
     for _ in range(max_taps):
-        if looks_courtyard(rows):
+        if _is_courtyard_frame(rgb, rows):
             return rgb, fsize, rows, True
         joined_txt = "".join(str(r.get("text") or "") for r in rows)
         if "退出游戏" in joined_txt or "退出阴阳师" in joined_txt or "确定要退出" in joined_txt:
@@ -799,7 +828,7 @@ def _try_return_to_courtyard(bridge_mod: Any, disp: int, rgb, fsize: tuple[int, 
         if rgb is None:
             return None, fsize, [], False
         rows = _ocr_rows_1280(rgb, fsize)
-    return rgb, fsize, rows, looks_courtyard(rows)
+    return rgb, fsize, rows, _is_courtyard_frame(rgb, rows)
 
 
 def refresh_assets(
@@ -853,7 +882,7 @@ def refresh_assets(
             return {"ok": False, "error": "无法获取虚拟屏截图", "snapshot": snap}
 
         rows = _ocr_rows_1280(rgb, fsize)
-        in_courtyard = looks_courtyard(rows)
+        in_courtyard = _is_courtyard_frame(rgb, rows)
         if not in_courtyard:
             # 若刚冷启动停在标题页/加载页，调用统一登录守卫进庭院
             _set_phase("正在等待游戏登录并进入庭院...")
@@ -866,7 +895,7 @@ def refresh_assets(
                     rgb, fsize = _capture_rgb(bridge, disp, retries=5, interval=0.6)
                     if rgb is not None:
                         rows = _ocr_rows_1280(rgb, fsize)
-                        in_courtyard = looks_courtyard(rows)
+                        in_courtyard = _is_courtyard_frame(rgb, rows)
             except Exception:  # noqa: BLE001
                 pass
 
@@ -957,7 +986,7 @@ def refresh_assets(
             if rgb_back is None:
                 continue
             back_rows = _ocr_rows_1280(rgb_back, fb_size)
-            if looks_courtyard(back_rows):
+            if _is_courtyard_frame(rgb_back, back_rows):
                 break
             joined_back = "".join(str(r.get("text") or "") for r in back_rows)
             if "退出游戏" in joined_back or "退出阴阳师" in joined_back:

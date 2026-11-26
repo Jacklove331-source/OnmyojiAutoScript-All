@@ -37,6 +37,12 @@ class TestAssetMonitor(unittest.TestCase):
             {"text": "2.0万", "x": 906, "y": 20, "w": 50, "h": 20},
         ]
         self.assertTrue(asset_monitor.looks_courtyard(courtyard_rows))
+        # 竖排灯笼把「探」「索」拆成两行，也能正确识别为庭院
+        self.assertTrue(asset_monitor.looks_courtyard([
+            {"text": "探", "x": 664, "y": 105, "w": 30, "h": 30},
+            {"text": "索", "x": 666, "y": 138, "w": 30, "h": 30},
+            {"text": "召唤", "x": 1084, "y": 178, "w": 30, "h": 50},
+        ]))
         top = asset_monitor.extract_top_values(courtyard_rows)
         self.assertEqual([v["value"] for v in top], [26670000, 132, 20000])
 

@@ -1,12 +1,12 @@
 {
-  "version": "2026.11.26.103013",
+  "version": "2026.11.26.103348",
   "source": "mobile",
-  "note": "auto-expand collapsed courtyard scroll bar for 6/6 asset OCR",
-  "updated_at": "2026-11-26T10:30:13",
+  "note": "use template+vertical-OCR courtyard detection for reliable 6/6 assets",
+  "updated_at": "2026-11-26T10:33:48",
   "file": "datapack/oas-patch.zip",
-  "size_bytes": 26372049,
+  "size_bytes": 26372454,
   "file_count": 3544,
-  "sha256": "03d698b0b5c63b11db64fba667ccc217401e5f79a5e1eb0f3d8325cbe2f7dff9",
+  "sha256": "97de91b3f4d7bc2aee818bba4ba5c2e1cc3ed071fc43ec64bc52236262427973",
   "apk": {
     "version_name": "0.3.4",
     "build_number": 79,
