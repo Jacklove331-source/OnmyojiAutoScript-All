@@ -1474,7 +1474,17 @@ class _Handler(BaseHTTPRequestHandler):
                 return
             if route.path == "/resume":
                 accepted = bridge.set_paused(False)
-                self._send_json(200, {"ok": accepted, "paused": bridge.paused()})
+                try:
+                    from . import device_guard
+                    device_guard.on_manual_resume(_workspace())
+                except Exception:  # noqa: BLE001
+                    pass
+                try:
+                    from . import scheduler as _sched
+                    _sched.clear_guard_pause_hint()
+                except Exception:  # noqa: BLE001
+                    pass
+                self._send_json(200, {"ok": accepted or not bridge.paused(), "paused": bridge.paused()})
                 return
             if route.path == "/target":
                 package = query.get("package", "").strip()
@@ -1492,7 +1502,8 @@ class _Handler(BaseHTTPRequestHandler):
                 except ValueError:
                     interval = 1800
                 config_name = query.get("config", "oas1")
-                result = scheduler_start(tasks, interval, config_name)
+                force = query.get("force", "0").strip().lower() in ("1", "true", "yes")
+                result = scheduler_start(tasks, interval, config_name, force=force)
                 self._send_json(200, result)
                 return
             if route.path == "/scheduler/stop":

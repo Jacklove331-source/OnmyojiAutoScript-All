@@ -481,8 +481,17 @@ class OasApi {
 
   Future<Map<String, dynamic>> taskStatus() => _getJson('/task/status');
 
-  Future<bool> startScheduler() =>
-      _post('/scheduler/start?config=${Uri.encodeComponent(activeConfig)}');
+  Future<Map<String, dynamic>> startSchedulerDetail({bool force = false}) {
+    final String forceQ = force ? '&force=1' : '';
+    return _postJson(
+      '/scheduler/start?config=${Uri.encodeComponent(activeConfig)}$forceQ',
+    );
+  }
+
+  Future<bool> startScheduler({bool force = false}) async {
+    final Map<String, dynamic> res = await startSchedulerDetail(force: force);
+    return res['ok'] == true;
+  }
 
   Future<bool> stopScheduler() async {
     final bool scheduler = await _post('/scheduler/stop');

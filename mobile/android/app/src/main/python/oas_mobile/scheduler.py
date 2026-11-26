@@ -13,11 +13,92 @@ SCHEDULER = {
     'interval': 1800, 'current': '', 'round': 0, 'completed': 0,
     'rounds_today': 0, 'round_limit': 0, 'limit_reached': False,
     'task_index': 0, 'last_finished': 0, 'next_at': 0, 'error': '', 'log': [],
+    'waiting_shizuku': False, 'waiting_reason': '',
+    'guard_paused': False, 'guard_reason': '',
 }
 _LOCK = threading.RLock()
 _THREAD = None
 _STOP = None
 _RUN_ID = None
+_SHIZUKU_POLL_INTERVAL = 1.5
+
+
+def _shizuku_is_ready() -> bool:
+    try:
+        from . import bridge
+        fn = getattr(bridge, 'shizuku_available', None)
+        if callable(fn):
+            return bool(fn())
+    except Exception:  # noqa: BLE001
+        pass
+    return True
+
+
+def _should_check_shizuku_preflight() -> bool:
+    try:
+        from . import bridge
+        if getattr(bridge, '_TEST_SHIZUKU_CHECK', False):
+            return True
+        return getattr(bridge, '_SHIZUKU', None) is not None
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _is_shizuku_error(error_text: str) -> bool:
+    text = str(error_text or '').lower()
+    if not text:
+        return False
+    if any(token in text for token in (
+        'shizuku unavailable',
+        'shizuku permission',
+        'shizuku 未授权',
+        'shizuku 未启动',
+        'shizuku 服务不可用',
+    )):
+        return True
+    if 'background display start failed' in text and not _shizuku_is_ready():
+        return True
+    return False
+
+
+def _wait_for_shizuku(stop_event: threading.Event, task_name: str = '') -> bool:
+    """当 Shizuku 未启动/未授权时挂起等待，用户手动打开 Shizuku 后自动返回 True 继续拉起游戏。"""
+    reason = 'Shizuku 未启动或未授权，请打开 Shizuku，就绪后将自动拉起游戏'
+    with _LOCK:
+        SCHEDULER['waiting_shizuku'] = True
+        SCHEDULER['waiting_reason'] = reason
+        SCHEDULER['current'] = ''
+        SCHEDULER['error'] = reason
+    _log(f'waiting for Shizuku before {task_name or "task"}')
+    try:
+        from . import device_guard
+        device_guard._update_progress_notification(
+            'OASX 等待 Shizuku', '请打开 Shizuku，就绪后将自动拉起游戏', True
+        )
+    except Exception:  # noqa: BLE001
+        pass
+
+    while not stop_event.is_set():
+        if _shizuku_is_ready():
+            with _LOCK:
+                SCHEDULER['waiting_shizuku'] = False
+                SCHEDULER['waiting_reason'] = ''
+                if SCHEDULER.get('error') == reason:
+                    SCHEDULER['error'] = ''
+            _log('Shizuku is ready; resuming task automatically')
+            return True
+        stop_event.wait(_SHIZUKU_POLL_INTERVAL)
+
+    with _LOCK:
+        SCHEDULER['waiting_shizuku'] = False
+        SCHEDULER['waiting_reason'] = ''
+    return False
+
+
+def clear_guard_pause_hint() -> None:
+    with _LOCK:
+        SCHEDULER['guard_paused'] = False
+        SCHEDULER['guard_reason'] = ''
 
 
 def _log(message: str) -> None:
@@ -241,7 +322,7 @@ def _refresh_rounds(preferences: Path, totals: Path) -> str:
     return day
 
 
-def start(tasks=None, interval: int = 1800, config_name: str = 'oas1') -> dict:
+def start(tasks=None, interval: int = 1800, config_name: str = 'oas1', force: bool = False) -> dict:
     global _THREAD, _STOP, _RUN_ID
     from . import task_runner
     if not task_runner._valid_config(config_name):
@@ -257,6 +338,7 @@ def start(tasks=None, interval: int = 1800, config_name: str = 'oas1') -> dict:
     except Exception as error:
         return {'ok': False, 'error': str(error)}
 
+    guard_info = {'paused': False, 'code': 'ok', 'reason': ''}
     with _LOCK:
         if SCHEDULER['running'] or (_THREAD is not None and _THREAD.is_alive()):
             return {'ok': False, 'error': 'scheduler already running or stopping', 'status': status()}
@@ -269,6 +351,18 @@ def start(tasks=None, interval: int = 1800, config_name: str = 'oas1') -> dict:
             return {'ok': False, 'error': str(error), 'status': status()}
         if SCHEDULER['limit_reached']:
             return {'ok': False, 'error': 'daily scheduler round limit reached', 'status': status()}
+        # 每次手动点击「开始托管」时，先收敛可能遗留的 paused 状态：
+        # 清除上一次运行残留的手动暂停或已回落的过温滞后锁；只有此刻确实命中护航规则时才保持暂停并把原因带回前端。
+        try:
+            from . import device_guard
+            guard_info = device_guard.prepare_for_start(task_runner.prepare_workspace(), force=force)
+        except Exception:  # noqa: BLE001
+            try:
+                from . import bridge
+                if callable(getattr(bridge, 'set_paused', None)):
+                    bridge.set_paused(False)
+            except Exception:  # noqa: BLE001
+                pass
         stop_event = threading.Event()
         _STOP = stop_event
         _RUN_ID = None
@@ -276,6 +370,9 @@ def start(tasks=None, interval: int = 1800, config_name: str = 'oas1') -> dict:
             'running': True, 'stopping': False, 'tasks': selected, 'config': config_name,
             'interval': interval, 'current': '', 'round': 0, 'completed': 0,
             'task_index': 0, 'next_at': 0, 'error': '', 'log': [],
+            'waiting_shizuku': False, 'waiting_reason': '',
+            'guard_paused': bool(guard_info.get('paused')),
+            'guard_reason': str(guard_info.get('reason') or ''),
         })
 
         def reserve_round() -> bool:
@@ -298,54 +395,66 @@ def start(tasks=None, interval: int = 1800, config_name: str = 'oas1') -> dict:
 
         def run_one(name: str) -> bool:
             global _RUN_ID
-            with _LOCK:
-                SCHEDULER['current'] = name
-                SCHEDULER['next_at'] = 0
-            if stop_event.is_set():
-                return False
-            _log(f'run {name} ({config_name})')
-            try:
-                from . import device_guard
-                device_guard.notify_task_progress(
-                    name,
-                    round_num=SCHEDULER['round'],
-                    completed=SCHEDULER['completed'],
-                    total=len(SCHEDULER['tasks']),
-                )
-            except Exception:  # noqa: BLE001
-                pass
-            result = task_runner.run_task(name, config_name, login=name != 'Restart')
-            if not result.get('ok'):
-                raise RuntimeError(result.get('error', 'task not started'))
-            run_id = result['run_id']
-            with _LOCK:
-                _RUN_ID = run_id
-            while True:
-                current = task_runner.status()
-                if current['run_id'] != run_id:
-                    raise RuntimeError('active task instance changed unexpectedly')
-                if not current['running']:
-                    break
-                if stop_event.is_set():
-                    # Cancellation can wait for an in-flight screenshot or OCR call.
-                    stopped = task_runner.stop_task(wait=True, timeout=5, run_id=run_id)
-                    if not stopped['ok']:
-                        raise RuntimeError(stopped['error'])
+            while not stop_event.is_set():
+                if _should_check_shizuku_preflight() and not _shizuku_is_ready():
+                    if not _wait_for_shizuku(stop_event, name):
+                        return False
                     continue
-                stop_event.wait(.1)
-            _log(f"{name} finished: ok={current.get('ok')} cancelled={current.get('cancelled')} error={current.get('error')}")
-            with _LOCK:
-                _RUN_ID = None
-                SCHEDULER['last_finished'] = int(time.time())
-                SCHEDULER['current'] = ''
-                if current.get('ok'):
-                    SCHEDULER['completed'] += 1
-            if not stop_event.is_set() and name == 'Restart' and current.get('phase') == 'failed':
-                # A subsequent task's automatic login would otherwise use the saved role.
-                raise RuntimeError(current.get('error') or 'Android Restart failed')
-            if not stop_event.is_set() and not explicit:
-                _defer_if_due(config_name, name, interval if current.get('ok') else max(300, interval))
-            return bool(current.get('ok'))
+                with _LOCK:
+                    SCHEDULER['current'] = name
+                    SCHEDULER['next_at'] = 0
+                if stop_event.is_set():
+                    return False
+                _log(f'run {name} ({config_name})')
+                try:
+                    from . import device_guard
+                    device_guard.notify_task_progress(
+                        name,
+                        round_num=SCHEDULER['round'],
+                        completed=SCHEDULER['completed'],
+                        total=len(SCHEDULER['tasks']),
+                    )
+                except Exception:  # noqa: BLE001
+                    pass
+                result = task_runner.run_task(name, config_name, login=name != 'Restart')
+                if not result.get('ok'):
+                    raise RuntimeError(result.get('error', 'task not started'))
+                run_id = result['run_id']
+                with _LOCK:
+                    _RUN_ID = run_id
+                while True:
+                    current = task_runner.status()
+                    if current['run_id'] != run_id:
+                        raise RuntimeError('active task instance changed unexpectedly')
+                    if not current['running']:
+                        break
+                    if stop_event.is_set():
+                        # Cancellation can wait for an in-flight screenshot or OCR call.
+                        stopped = task_runner.stop_task(wait=True, timeout=5, run_id=run_id)
+                        if not stopped['ok']:
+                            raise RuntimeError(stopped['error'])
+                        continue
+                    stop_event.wait(.1)
+                _log(f"{name} finished: ok={current.get('ok')} cancelled={current.get('cancelled')} error={current.get('error')}")
+                with _LOCK:
+                    _RUN_ID = None
+                    SCHEDULER['last_finished'] = int(time.time())
+                    SCHEDULER['current'] = ''
+                    if current.get('ok'):
+                        SCHEDULER['completed'] += 1
+                # Shizuku 未启动/中途断开属于基础设施未就绪：绝不把任务推迟 30 分钟，也绝不因此终止调度器；
+                # 直接原地等待用户打开 Shizuku，就绪后自动重跑该任务拉起游戏！
+                if not stop_event.is_set() and not current.get('ok') and _is_shizuku_error(current.get('error', '')):
+                    if not _wait_for_shizuku(stop_event, name):
+                        return False
+                    continue
+                if not stop_event.is_set() and name == 'Restart' and current.get('phase') == 'failed':
+                    # A subsequent task's automatic login would otherwise use the saved role.
+                    raise RuntimeError(current.get('error') or 'Android Restart failed')
+                if not stop_event.is_set() and not explicit:
+                    _defer_if_due(config_name, name, interval if current.get('ok') else max(300, interval))
+                return bool(current.get('ok'))
+            return False
 
         def worker() -> None:
             try:
@@ -359,6 +468,10 @@ def start(tasks=None, interval: int = 1800, config_name: str = 'oas1') -> dict:
                     if reached_daily_limit():
                         break
                     if explicit:
+                        if _should_check_shizuku_preflight() and not _shizuku_is_ready():
+                            if not _wait_for_shizuku(stop_event, selected[0] if selected else ''):
+                                break
+                            continue
                         if not reserve_round():
                             break
                         for index, name in enumerate(selected, 1):
@@ -402,6 +515,10 @@ def start(tasks=None, interval: int = 1800, config_name: str = 'oas1') -> dict:
                                 SCHEDULER['next_at'] = int(time.time() + delay)
                             stop_event.wait(min(delay, 5))
                             continue
+                        if _should_check_shizuku_preflight() and not _shizuku_is_ready():
+                            if not _wait_for_shizuku(stop_event, next_task.command):
+                                break
+                            continue
                         if not reserve_round():
                             break
                         run_one(next_task.command)
@@ -412,7 +529,11 @@ def start(tasks=None, interval: int = 1800, config_name: str = 'oas1') -> dict:
             finally:
                 err_msg = SCHEDULER.get('error', '')
                 with _LOCK:
-                    SCHEDULER.update({'running': False, 'stopping': False, 'current': '', 'next_at': 0})
+                    SCHEDULER.update({
+                        'running': False, 'stopping': False, 'current': '', 'next_at': 0,
+                        'waiting_shizuku': False, 'waiting_reason': '',
+                        'guard_paused': False, 'guard_reason': '',
+                    })
                 try:
                     from . import device_guard
                     from .task_runner import prepare_workspace
@@ -423,7 +544,12 @@ def start(tasks=None, interval: int = 1800, config_name: str = 'oas1') -> dict:
 
         _THREAD = threading.Thread(target=worker, name='oas-scheduler', daemon=True)
         _THREAD.start()
-    return {'ok': True, 'started': True, 'tasks': selected, 'config': config_name, 'interval': interval}
+    return {
+        'ok': True, 'started': True, 'tasks': selected, 'config': config_name, 'interval': interval,
+        'guard_paused': bool(guard_info.get('paused')),
+        'guard_code': str(guard_info.get('code') or 'ok'),
+        'guard_reason': str(guard_info.get('reason') or ''),
+    }
 
 
 def stop(wait: bool = False) -> dict:

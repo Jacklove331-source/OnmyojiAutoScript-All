@@ -10,16 +10,38 @@ import 'package:oasx/ui/pages/home.dart';
 import 'package:oasx/ui/pages/ota_card.dart';
 
 class HomeAdapter implements HttpClientAdapter {
-  HomeAdapter({this.lastPlan = const <String>[]});
+  HomeAdapter({
+    this.lastPlan = const <String>[],
+    this.running = false,
+    this.paused = false,
+    this.waitingShizuku = false,
+    this.shizukuReady = true,
+    this.guardAutoPaused = false,
+    this.guardReason = '',
+  });
 
   final List<String> lastPlan;
+  bool running;
+  bool paused;
+  bool waitingShizuku;
+  bool shizukuReady;
+  bool guardAutoPaused;
+  String guardReason;
   int otaCheckCalls = 0;
+  int resumeCalls = 0;
 
   @override
   Future<ResponseBody> fetch(RequestOptions options,
       Stream<Uint8List>? requestStream, Future<void>? cancelFuture) async {
     if (options.uri.path == '/ota/check') {
       otaCheckCalls++;
+    }
+    if (options.uri.path == '/resume') {
+      resumeCalls++;
+      paused = false;
+      guardAutoPaused = false;
+      return ResponseBody.fromString(
+          jsonEncode(<String, Object>{'ok': true, 'paused': false}), 200);
     }
     const List<String> tasks = <String>[
       'Restart', 'AreaBoss', 'GoldYoukai', 'Nian', 'RealmRaid', 'KekkaiUtilize',
@@ -29,12 +51,26 @@ class HomeAdapter implements HttpClientAdapter {
       'Hunt', 'AbyssShadows'
     ];
     final Map<String, Object> responses = <String, Object>{
-      '/health': <String, Object>{'ok': true},
-      '/state': <String, Object>{'ok': true, 'virtual_display': 2},
+      '/health': <String, Object>{'ok': true, 'paused': paused},
+      '/state': <String, Object>{
+        'ok': true,
+        'virtual_display': 2,
+        'paused': paused,
+        'shizuku_ready': shizukuReady,
+      },
       '/scheduler/status': <String, Object>{
-        'running': false,
+        'running': running,
         'config': 'oas-lg14-qa',
-        'tasks': lastPlan
+        'tasks': lastPlan,
+        'waiting_shizuku': waitingShizuku,
+        'waiting_reason': waitingShizuku ? 'Shizuku 未启动，请打开后自动继续' : '',
+        'guard_paused': guardAutoPaused,
+        'guard_reason': guardReason,
+      },
+      '/guard/status': <String, Object>{
+        'ok': true,
+        'auto_paused': guardAutoPaused,
+        'auto_pause_reason': guardReason,
       },
       '/task/status': <String, Object>{'running': false},
       '/config_tasks': <String, Object>{
@@ -71,8 +107,12 @@ Future<void> showHome(WidgetTester tester, {HomeAdapter? adapter}) async {
   final Dio dio = Dio(BaseOptions(
       baseUrl: 'http://127.0.0.1:22267', responseType: ResponseType.plain));
   dio.httpClientAdapter = adapter ?? HomeAdapter();
-  await tester.pumpWidget(
-      MaterialApp(home: Scaffold(body: HomePage(api: OasApi.withClient(dio)))));
+  await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+          body: HomePage(
+    api: OasApi.withClient(dio),
+    enableAutoRefresh: false,
+  ))));
   await tester.pumpAndSettle();
   for (int attempt = 0; attempt < 20; attempt++) {
     await tester.pump(const Duration(milliseconds: 100));
@@ -127,6 +167,38 @@ void main() {
     await showHome(tester, adapter: adapter);
     expect(find.text('在线更新'), findsOneWidget);
     expect(adapter.otaCheckCalls, 1);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('home page displays waiting Shizuku banner with action button',
+      (WidgetTester tester) async {
+    final HomeAdapter adapter = HomeAdapter(
+      running: true,
+      waitingShizuku: true,
+      shizukuReady: false,
+    );
+    await showHome(tester, adapter: adapter);
+    expect(find.text('等待 Shizuku 启动'), findsOneWidget);
+    expect(find.text('打开Shizuku'), findsOneWidget);
+    expect(find.text('等Shizuku'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('home page displays guard pause banner and supports one-tap resume',
+      (WidgetTester tester) async {
+    final HomeAdapter adapter = HomeAdapter(
+      running: true,
+      paused: true,
+      guardAutoPaused: true,
+      guardReason: '电池温度 42.5℃ 过高，暂停降温',
+    );
+    await showHome(tester, adapter: adapter);
+    expect(find.text('手机护航已暂停托管'), findsOneWidget);
+    expect(find.textContaining('42.5℃'), findsOneWidget);
+    await tester.tap(find.text('立即继续'));
+    await tester.pumpAndSettle();
+    expect(adapter.resumeCalls, 1);
+    expect(find.text('手机护航已暂停托管'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 

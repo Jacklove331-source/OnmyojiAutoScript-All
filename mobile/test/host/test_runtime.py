@@ -173,8 +173,10 @@ class RuntimeTests(unittest.TestCase):
         self.runner.run_task('Probe')
         time.sleep(.1)
         self.assertFalse(self.entered.is_set())
+        self.assertEqual(self.runner.status()['phase'], 'paused')
         self.paused = False
         self.assertTrue(self.entered.wait(1))
+        self.assertNotEqual(self.runner.status()['phase'], 'paused')
 
     def test_stop_while_paused_is_responsive(self):
         self.assertTrue(callable(getattr(self.runner, 'stop_task', None)))
@@ -334,6 +336,147 @@ class SchedulerTests(unittest.TestCase):
         snapshot = self.scheduler.status()
         snapshot['tasks'].clear()
         self.assertEqual(self.scheduler.status()['tasks'], ['Probe'])
+
+    def test_shizuku_error_does_not_defer_and_auto_resumes_when_ready(self):
+        from datetime import datetime, timedelta
+        import oas_mobile
+
+        shizuku_ready = {'value': False}
+        deferred = []
+        attempts = []
+        done = threading.Event()
+
+        oas_mobile.bridge.shizuku_available = lambda: shizuku_ready['value']
+        self.scheduler._SHIZUKU_POLL_INTERVAL = 0.02
+        self.scheduler._defer_if_due = lambda cfg, name, sec: deferred.append((name, sec))
+        past = datetime.now() - timedelta(minutes=1)
+        self.scheduler._native_next = lambda name: types.SimpleNamespace(command='Probe', next_run=past)
+
+        state = {'status': {'running': False, 'run_id': ''}}
+
+        def fake_run_task(name, config, *, login=True):
+            attempts.append(name)
+            run_id = f'run-{len(attempts)}'
+            if len(attempts) == 1:
+                state['status'] = {
+                    'running': False, 'run_id': run_id, 'phase': 'failed', 'ok': False,
+                    'cancelled': False,
+                    'error': 'RuntimeError: background display start failed: error=shizuku unavailable',
+                }
+            else:
+                state['status'] = {
+                    'running': False, 'run_id': run_id, 'phase': 'completed', 'ok': True,
+                    'cancelled': False, 'error': '',
+                }
+                done.set()
+                self.scheduler._native_next = lambda _: types.SimpleNamespace(
+                    command='Probe', next_run=self.future
+                )
+            return {'ok': True, 'run_id': run_id}
+
+        self.runner.run_task = fake_run_task
+        self.runner.status = lambda: dict(state['status'])
+
+        res = self.scheduler.start()
+        self.assertTrue(res['ok'])
+        deadline = time.monotonic() + 1.5
+        while not self.scheduler.status().get('waiting_shizuku') and time.monotonic() < deadline:
+            time.sleep(0.01)
+        self.assertTrue(self.scheduler.status()['waiting_shizuku'])
+        self.assertEqual(deferred, [], 'Shizuku 不可用时绝不能把任务推迟 30 分钟')
+
+        # 模拟用户手动打开 Shizuku，调度器应立刻自动拉起游戏重试该任务
+        shizuku_ready['value'] = True
+        self.assertTrue(done.wait(1.5), 'Shizuku 恢复后未自动重新拉起任务')
+        deadline = time.monotonic() + 1.5
+        while self.scheduler.status()['completed'] < 1 and time.monotonic() < deadline:
+            time.sleep(0.01)
+        self.assertEqual(attempts, ['Probe', 'Probe'])
+        self.assertFalse(self.scheduler.status()['waiting_shizuku'])
+        self.assertEqual(self.scheduler.status()['completed'], 1)
+
+    def test_restart_shizuku_error_waits_instead_of_killing_scheduler(self):
+        import oas_mobile
+
+        shizuku_ready = {'value': False}
+        attempts = []
+        done = threading.Event()
+        oas_mobile.bridge.shizuku_available = lambda: shizuku_ready['value']
+        self.scheduler._SHIZUKU_POLL_INTERVAL = 0.02
+
+        state = {'status': {'running': False, 'run_id': ''}}
+
+        def fake_run_task(name, config, *, login=True):
+            attempts.append(name)
+            run_id = f'restart-{len(attempts)}'
+            if len(attempts) == 1:
+                state['status'] = {
+                    'running': False, 'run_id': run_id, 'phase': 'failed', 'ok': False,
+                    'cancelled': False,
+                    'error': 'RuntimeError: background display start failed: error=shizuku unavailable',
+                }
+            else:
+                state['status'] = {
+                    'running': False, 'run_id': run_id, 'phase': 'completed', 'ok': True,
+                    'cancelled': False, 'error': '',
+                }
+                done.set()
+            return {'ok': True, 'run_id': run_id}
+
+        self.runner.run_task = fake_run_task
+        self.runner.status = lambda: dict(state['status'])
+
+        self.assertTrue(self.scheduler.start('Restart')['ok'])
+        deadline = time.monotonic() + 1.5
+        while not self.scheduler.status().get('waiting_shizuku') and time.monotonic() < deadline:
+            time.sleep(0.01)
+        self.assertTrue(self.scheduler.status()['running'], 'Restart 遇 Shizuku 未启动不应杀掉调度器')
+
+        shizuku_ready['value'] = True
+        self.assertTrue(done.wait(1.5))
+        self.assertEqual(attempts, ['Restart', 'Restart'])
+
+    def test_scheduler_start_clears_stale_overheat_and_respects_manual_resume(self):
+        from tempfile import TemporaryDirectory
+        import oas_mobile
+
+        guard = load('device_guard')
+        oas_mobile.device_guard = guard
+        paused_state = {'value': True}
+        oas_mobile.bridge.paused = lambda: paused_state['value']
+        oas_mobile.bridge.set_paused = lambda v: paused_state.__setitem__('value', bool(v)) or True
+
+        with TemporaryDirectory() as ws:
+            self.runner.prepare_workspace = lambda: ws
+            # 场景 1：之前曾高温触发过 auto_paused，但现在温度已降到 38.8℃（<42℃ 上限）
+            guard._state['auto_paused'] = True
+            guard._state['auto_pause_code'] = 'overheat'
+            guard._state['auto_pause_reason'] = '电池温度 38.8℃ 过高，暂停降温'
+            guard.read_telemetry = lambda: {
+                'battery_pct': 96, 'battery_temp_c': 38.8, 'charging': True,
+                'network_online': True, 'network_type': 'wifi',
+            }
+            res = self.scheduler.start()
+            self.assertTrue(res['ok'])
+            self.assertFalse(res['guard_paused'])
+            self.assertFalse(paused_state['value'], '残留过温滞后锁应在重新点击开始托管时自动清除')
+            self.scheduler.stop(wait=True)
+
+            # 场景 2：此刻真高温 43.0℃，开始托管会明确上报 guard_paused，点手动继续则立即解除并不被护航立刻重锁
+            guard.read_telemetry = lambda: {
+                'battery_pct': 96, 'battery_temp_c': 43.0, 'charging': True,
+                'network_online': True, 'network_type': 'wifi',
+            }
+            res2 = self.scheduler.start()
+            self.assertTrue(res2['ok'])
+            self.assertTrue(res2['guard_paused'])
+            self.assertIn('43.0', res2['guard_reason'])
+            self.assertTrue(paused_state['value'])
+
+            guard.on_manual_resume(ws, override_minutes=30)
+            self.assertFalse(paused_state['value'])
+            guard._guard_tick(ws)
+            self.assertFalse(paused_state['value'], '手动继续后 30 分钟内护航不应把同一高温原因立刻重锁')
 
 
 if __name__ == '__main__':

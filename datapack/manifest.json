@@ -1,21 +1,21 @@
 {
-  "version": "2026.11.26.185350",
+  "version": "2026.11.26.194320",
   "source": "mobile",
-  "note": "0.3.5+82: 覆盖安装新APK自动停用旧热更缓存，确保新皮肤等代码即时生效",
-  "updated_at": "2026-11-26T18:53:50",
+  "note": "0.3.5+83: 修复点开始托管因残留过温/手动暂停卡死不启动游戏；修复Shizuku未启动推迟30分钟问题，打开Shizuku后自动拉起游戏；庭院首页新增醒目状态提示与一键恢复/打开Shizuku",
+  "updated_at": "2026-11-26T19:43:20",
   "file": "datapack/oas-patch.zip",
-  "size_bytes": 26402395,
-  "file_count": 3550,
-  "sha256": "957cb73c5b2bdf77a29dd6509b0cbffd5dc49d56893b9379e66679e5a5bd18e0",
+  "size_bytes": 26528687,
+  "file_count": 3576,
+  "sha256": "10ad8c1bdc11096e69de6d72a6a82df6e28d462da41550185dc2d063d47e2634",
   "apk": {
     "version_name": "0.3.5",
-    "build_number": 82,
-    "tag": "v0.3.5-b82",
-    "file_name": "OASX-Mobile-0.3.5-b82-arm64-v8a.apk",
-    "size_bytes": 156613418,
-    "sha256": "5f942052fb31ed29b3ce9268f3be24b12f98f4a0d432a8956b4aaa7876dd7767",
-    "download_url": "https://github.com/Jacklove331-source/OnmyojiAutoScript-All/releases/download/v0.3.5-b82/OASX-Mobile-0.3.5-b82-arm64-v8a.apk",
-    "note": "更新卡片移至庭院首页并支持启动自动检测更新；参数页皮肤与分组全面显示中文不露代码；修复升级APK后旧热更覆盖问题",
-    "updated_at": "2026-11-26T18:53:50"
+    "build_number": 83,
+    "tag": "v0.3.5-b83",
+    "file_name": "OASX-Mobile-0.3.5-b83-arm64-v8a.apk",
+    "size_bytes": 156630318,
+    "sha256": "0bd09f56ea026ef4a771469b5ea996b33ddee8b85cc13c1ea2488ef2bd900105",
+    "download_url": "https://github.com/Jacklove331-source/OnmyojiAutoScript-All/releases/download/v0.3.5-b83/OASX-Mobile-0.3.5-b83-arm64-v8a.apk",
+    "note": "修复点开始托管因残留过温/手动暂停卡死不启动游戏；修复Shizuku未启动推迟30分钟问题，打开Shizuku后自动拉起游戏；庭院首页新增醒目状态提示与一键恢复/打开Shizuku",
+    "updated_at": "2026-11-26T19:43:20"
   }
 }

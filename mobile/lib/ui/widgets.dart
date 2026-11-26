@@ -620,6 +620,7 @@ abstract final class OasToast {
       ..showSnackBar(
         SnackBar(
           content: Text(text),
+          behavior: SnackBarBehavior.floating,
           duration: const Duration(milliseconds: 1400),
           margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         ),

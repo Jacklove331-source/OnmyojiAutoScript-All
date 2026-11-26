@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../api.dart';
 import '../avatar_picker.dart';
@@ -12,22 +15,26 @@ import 'task_args.dart';
 
 /// ① 庭院：一眼看清状态，主按钮只有一个；下方实时展示与电脑端 OAS 一致的「任务排序」。
 ///
-/// 数据来自 GET /state、/health、/scheduler/status、/scheduler/queue；主按钮接 POST /scheduler/start|stop。
+/// 数据来自 GET /state、/health、/scheduler/status、/scheduler/queue、/guard/status；主按钮接 POST /scheduler/start|stop。
 class HomePage extends StatefulWidget {
-  const HomePage({super.key, this.api});
+  const HomePage({super.key, this.api, this.enableAutoRefresh = true});
 
   final OasApi? api;
+  final bool enableAutoRefresh;
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
+  static const MethodChannel _systemChannel = MethodChannel('oasx/system');
+
   OasApi get _api => widget.api ?? OasApi.i;
   Map<String, dynamic>? _health;
   Map<String, dynamic>? _state;
   Map<String, dynamic>? _sched;
   Map<String, dynamic>? _task;
+  Map<String, dynamic>? _guard;
   List<String> _enabledPlan = <String>[];
   List<Map<String, dynamic>> _queue = <Map<String, dynamic>>[];
   int _pendingCount = 0;
@@ -37,6 +44,7 @@ class _HomePageState extends State<HomePage> {
   String? _pinningTask;
   bool _busy = false;
   String? _error;
+  Timer? _pollTimer;
 
   /// 自愈历史（`/ai/recovery`）：只用来给「异常 · AI 修复」格子填数字，点进去看详情。
   OasAiRecovery? _aiRecovery;
@@ -47,11 +55,38 @@ class _HomePageState extends State<HomePage> {
     _load();
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
+  }
+
+  void _syncPolling() {
+    if (!widget.enableAutoRefresh || !mounted) {
+      _pollTimer?.cancel();
+      _pollTimer = null;
+      return;
+    }
+    if (_running) {
+      _pollTimer ??= Timer.periodic(
+        const Duration(milliseconds: 3500),
+        (_) {
+          if (mounted && !_busy) _load(silent: true);
+        },
+      );
+    } else {
+      _pollTimer?.cancel();
+      _pollTimer = null;
+    }
+  }
+
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final List<Map<String, dynamic>> r = await Future.wait(
         <Future<Map<String, dynamic>>>[
@@ -60,6 +95,7 @@ class _HomePageState extends State<HomePage> {
           _api.schedulerStatus(),
           _api.taskStatus(),
           _api.schedulerQueue(config: _api.activeConfig),
+          _api.guardStatus(),
         ],
       );
       final Map<String, bool> enabled =
@@ -84,22 +120,30 @@ class _HomePageState extends State<HomePage> {
         _state = r[1];
         _sched = r[2];
         _task = r[3];
+        _guard = r[5];
         _queue = parsedQueue;
         _aiRecovery = ai;
         _pendingCount = (qData['pending_count'] is num)
             ? (qData['pending_count'] as num).toInt()
-            : parsedQueue.where((Map<String, dynamic> e) => e['status'] == 'pending').length;
+            : parsedQueue
+                .where((Map<String, dynamic> e) => e['status'] == 'pending')
+                .length;
         _waitingCount = (qData['waiting_count'] is num)
             ? (qData['waiting_count'] as num).toInt()
-            : parsedQueue.where((Map<String, dynamic> e) => e['status'] == 'waiting').length;
+            : parsedQueue
+                .where((Map<String, dynamic> e) => e['status'] == 'waiting')
+                .length;
         _loading = false;
       });
+      _syncPolling();
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        _error = '$e';
-        _loading = false;
-      });
+      if (!silent) {
+        setState(() {
+          _error = '$e';
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -156,7 +200,65 @@ class _HomePageState extends State<HomePage> {
 
   bool get _running => _sched?['running'] == true || _task?['running'] == true;
 
-  bool get _paused => _state?['paused'] == true;
+  bool get _paused =>
+      _state?['paused'] == true ||
+      _task?['phase'] == 'paused' ||
+      _sched?['guard_paused'] == true;
+
+  bool get _waitingShizuku =>
+      _sched?['waiting_shizuku'] == true ||
+      (_running && _state?['shizuku_ready'] == false);
+
+  bool get _waitingNextDue =>
+      _running &&
+      !_paused &&
+      !_waitingShizuku &&
+      _pendingCount == 0 &&
+      _queue.isNotEmpty &&
+      _queue.first['status'] == 'waiting';
+
+  String get _guardPauseReason {
+    final String fromGuard = '${_guard?['auto_pause_reason'] ?? ''}'.trim();
+    if (_guard?['auto_paused'] == true && fromGuard.isNotEmpty) {
+      return fromGuard;
+    }
+    final String fromSched = '${_sched?['guard_reason'] ?? ''}'.trim();
+    if (fromSched.isNotEmpty) return fromSched;
+    return '';
+  }
+
+  Future<void> _resumeNow() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      final bool ok = await _api.resume();
+      if (!mounted) return;
+      await _load(silent: true);
+      if (!mounted) return;
+      OasToast.show(context, ok ? '已恢复运行，正在拉起游戏' : '恢复失败，请稍后重试');
+    } catch (e) {
+      if (!mounted) return;
+      OasToast.show(context, '恢复失败：$e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _openShizuku() async {
+    try {
+      final bool? ok = await _systemChannel.invokeMethod<bool>(
+        'open',
+        <String, String>{'page': 'shizuku'},
+      );
+      if (!mounted) return;
+      if (ok != true) {
+        OasToast.show(context, '未找到 Shizuku，请先安装并启动 Shizuku');
+      }
+    } catch (_) {
+      if (!mounted) return;
+      OasToast.show(context, '请手动打开 Shizuku，启动后将自动拉起游戏');
+    }
+  }
 
   String get _planLine {
     final Object? raw = _sched?['tasks'];
@@ -203,18 +305,38 @@ class _HomePageState extends State<HomePage> {
     final bool stopping = _running;
     setState(() => _busy = true);
     try {
-      final bool ok =
-          stopping ? await _api.stopScheduler() : await _api.startScheduler();
+      bool ok = false;
+      Map<String, dynamic> startRes = const <String, dynamic>{};
+      if (stopping) {
+        ok = await _api.stopScheduler();
+      } else {
+        startRes = await _api.startSchedulerDetail();
+        ok = startRes['ok'] == true;
+      }
       if (!mounted) return;
-      await _load();
+      await _load(silent: true);
       if (!mounted) return;
       final String message;
       if (ok) {
-        message = stopping ? '已停止托管' : '已开始托管';
+        if (stopping) {
+          message = '已停止托管';
+        } else if (_waitingShizuku) {
+          message = '已开始托管，等待打开 Shizuku 后自动拉起游戏';
+        } else if (startRes['guard_paused'] == true || _paused) {
+          final String reason = '${startRes['guard_reason'] ?? _guardPauseReason}'.trim();
+          message = reason.isNotEmpty
+              ? '已开始托管（护航暂停：$reason）'
+              : '已开始托管，当前处于暂停状态，点「立即继续」可拉起游戏';
+        } else if (_waitingNextDue) {
+          message = '已开始托管，将在最近任务到点后自动拉起游戏';
+        } else {
+          message = '已开始托管，正在启动游戏…';
+        }
       } else if (!stopping && _sched?['limit_reached'] == true) {
         message = '已到今日托管上限';
       } else {
-        message = '后端没有接受这次操作';
+        final String err = '${startRes['error'] ?? ''}'.trim();
+        message = err.isNotEmpty ? err : '后端没有接受这次操作';
       }
       OasToast.show(context, message);
     } catch (e) {
@@ -313,6 +435,10 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 14),
             _accountCard(context, p),
+            if (_buildStatusBanner(context, p) case final Widget banner) ...<Widget>[
+              const SizedBox(height: 10),
+              banner,
+            ],
             const SizedBox(height: 14),
             Row(
               children: <Widget>[
@@ -320,9 +446,19 @@ class _HomePageState extends State<HomePage> {
                   child: OasStatCell(
                     value: _loading
                         ? '…'
-                        : (_running ? (_paused ? '已暂停' : '运行中') : '空闲'),
+                        : (!_running
+                            ? '空闲'
+                            : (_waitingShizuku
+                                ? '等Shizuku'
+                                : (_paused
+                                    ? '已暂停'
+                                    : (_waitingNextDue ? '等待中' : '运行中')))),
                     label: '状态',
-                    valueColor: _running ? p.jade : p.inkDim,
+                    valueColor: !_running
+                        ? p.inkDim
+                        : (_waitingShizuku
+                            ? p.vermilion
+                            : ((_paused || _waitingNextDue) ? p.gold : p.jade)),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -486,8 +622,11 @@ class _HomePageState extends State<HomePage> {
     final int rankNum = hasRunning ? index : index + 1;
     final ({String badge, String detail}) timeInfo =
         _formatQueueTime(status, nextRun);
+    final bool isWaiting = status == 'waiting';
     final bool canPin =
-        !isRunning && (hasRunning ? index > 1 : index > 0);
+        !isRunning && (isWaiting || (hasRunning ? index > 1 : index > 0));
+    final String pinLabel =
+        isWaiting && !(hasRunning ? index > 1 : index > 0) ? '立即' : '置顶';
     final bool pinning = _pinningTask == dir;
 
     final Color statusColor =
@@ -604,7 +743,7 @@ class _HomePageState extends State<HomePage> {
                   border: Border.all(color: p.gold.withOpacity(0.45)),
                 ),
                 child: Text(
-                  pinning ? '…' : '置顶',
+                  pinning ? '…' : pinLabel,
                   style: TextStyle(
                     fontSize: 10.5,
                     fontWeight: FontWeight.w700,
@@ -617,6 +756,116 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
     );
+  }
+
+  Widget? _buildStatusBanner(BuildContext context, OasPalette p) {
+    if (_loading) return null;
+    if (_waitingShizuku) {
+      final String reason = '${_sched?['waiting_reason'] ?? ''}'.trim();
+      return OasCard(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        child: Row(
+          children: <Widget>[
+            Icon(Icons.warning_amber_rounded, size: 18, color: p.vermilion),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    '等待 Shizuku 启动',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: p.vermilion,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    reason.isNotEmpty
+                        ? reason
+                        : '请先打开并启动 Shizuku，就绪后将自动拉起游戏继续托管',
+                    style: TextStyle(fontSize: 11, color: p.inkSoft),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            OasPill(
+              text: '打开Shizuku',
+              color: p.vermilion,
+              onTap: _openShizuku,
+            ),
+          ],
+        ),
+      );
+    }
+    if (_running && _paused) {
+      final String reason = _guardPauseReason;
+      return OasCard(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        child: Row(
+          children: <Widget>[
+            Icon(Icons.pause_circle_outline_rounded, size: 18, color: p.gold),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    reason.isNotEmpty ? '手机护航已暂停托管' : '托管处于暂停状态',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: p.gold,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    reason.isNotEmpty
+                        ? '$reason（恢复后自动拉起游戏，或点右侧立即继续）'
+                        : '当前已暂停，游戏暂未拉起，点右侧按钮可立即继续',
+                    style: TextStyle(fontSize: 11, color: p.inkSoft),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            OasPill(
+              text: '立即继续',
+              color: p.gold,
+              onTap: _resumeNow,
+            ),
+          ],
+        ),
+      );
+    }
+    if (_waitingNextDue) {
+      final Map<String, dynamic> first = _queue.first;
+      final String dir = '${first['name'] ?? ''}';
+      final String rawTitle = '${first['title'] ?? ''}';
+      final String title = rawTitle.isNotEmpty && rawTitle != dir
+          ? rawTitle
+          : taskDisplayName(dir);
+      final ({String badge, String detail}) info =
+          _formatQueueTime('waiting', '${first['next_run'] ?? ''}');
+      return OasCard(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        child: Row(
+          children: <Widget>[
+            Icon(Icons.schedule_rounded, size: 17, color: p.gold),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                '已开启托管，最近任务「$title」将在 ${info.badge} 执行（点下方「置顶」可立即启动游戏）',
+                style: TextStyle(fontSize: 11.5, color: p.inkSoft),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return null;
   }
 
   /// 账号卡 + 唯一主按钮 + 当前方案
@@ -685,7 +934,15 @@ class _HomePageState extends State<HomePage> {
             padding: const EdgeInsets.fromLTRB(10, 12, 10, 0),
             child: OasPrimaryButton(
               label: _busy ? '处理中…' : (_running ? '停止托管' : '开始托管'),
-              suffix: _loading ? '…' : (_running ? '运行中' : '点一下开始'),
+              suffix: _loading
+                  ? '…'
+                  : (!_running
+                      ? '点一下开始'
+                      : (_waitingShizuku
+                          ? '等待Shizuku'
+                          : (_paused
+                              ? '已暂停'
+                              : (_waitingNextDue ? '等任务到点' : '运行中')))),
               height: 42,
               onTap: _busy || _loading ? null : _toggle,
             ),

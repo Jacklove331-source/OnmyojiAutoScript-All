@@ -35,6 +35,8 @@ _state: Dict[str, Any] = {
     "auto_paused": False,
     "auto_pause_code": "",
     "auto_pause_reason": "",
+    "override_code": "",
+    "override_until": 0.0,
     "last_alert_code": None,
     "last_shizuku_alert_ts": 0.0,
     "auto_start_dates": set(),
@@ -106,6 +108,7 @@ def save_config(workspace: str, patch: Dict[str, Any]) -> Dict[str, Any]:
     with open(_config_path(workspace), "w", encoding="utf-8") as f:
         json.dump(cfg, f, ensure_ascii=False, indent=2)
 
+    _reconcile_after_config_change(workspace)
     return {"ok": True, **get_status(workspace)}
 
 
@@ -284,6 +287,105 @@ def notify_alert(title: str, body: str, alert_id: int = 2001) -> None:
     )
 
 
+def _clear_auto_pause_state(unpause_bridge: bool = False) -> None:
+    with _state_lock:
+        was_auto = bool(_state["auto_paused"])
+        _state["auto_paused"] = False
+        _state["auto_pause_code"] = ""
+        _state["auto_pause_reason"] = ""
+        _state["last_alert_code"] = None
+    if unpause_bridge and was_auto:
+        _set_paused(False)
+
+
+def _is_override_active(code: str) -> bool:
+    if not code:
+        return False
+    now = time.time()
+    with _state_lock:
+        if _state["override_code"] == code and now < float(_state.get("override_until") or 0.0):
+            return True
+        if _state["override_code"] and now >= float(_state.get("override_until") or 0.0):
+            _state["override_code"] = ""
+            _state["override_until"] = 0.0
+    return False
+
+
+def on_manual_resume(workspace: str = "", override_minutes: int = 30) -> Dict[str, Any]:
+    """用户手动点「继续」时调用：解除护航自动暂停，并在一段时间内不再因同一原因立即重锁。"""
+    with _state_lock:
+        code = str(_state.get("auto_pause_code") or "")
+        if not code and workspace:
+            try:
+                cfg = load_config(workspace)
+                telemetry = read_telemetry()
+                guard = evaluate_guard(cfg, telemetry, now_hhmm=time.strftime("%H:%M"), was_overheat=False)
+                if guard.get("should_pause"):
+                    code = str(guard.get("code") or "")
+            except Exception:
+                code = ""
+        if code:
+            _state["override_code"] = code
+            _state["override_until"] = time.time() + max(60, int(override_minutes) * 60)
+        _state["auto_paused"] = False
+        _state["auto_pause_code"] = ""
+        _state["auto_pause_reason"] = ""
+        _state["last_alert_code"] = None
+    _set_paused(False)
+    return {"ok": True, "override_code": code}
+
+
+def prepare_for_start(workspace: str, force: bool = False) -> Dict[str, Any]:
+    """用户点击「开始托管」前的暂停态收敛：
+
+    1. 清除上一次运行遗留的 auto_paused / 过温滞后锁，避免温度已回落到 38.8℃ 仍卡死启动；
+    2. 仅按当前实时遥测（不带历史滞后）判断是否真触发护航；
+    3. 若未触发护航（或 force=True / 在手动忽略窗口内），立即 _set_paused(False) 确保游戏能拉起；
+    4. 若此刻确实触发护航（例如真 ≥ 42℃、低电未充、断网、休眠时段），同步写入 auto_paused 并告知调用方原因。
+    """
+    cfg = load_config(workspace)
+    telemetry = read_telemetry()
+    now_hhmm = time.strftime("%H:%M")
+    guard = evaluate_guard(cfg, telemetry, now_hhmm=now_hhmm, was_overheat=False)
+
+    if guard["should_pause"]:
+        code = str(guard.get("code") or "")
+        reason = str(guard.get("reason") or "")
+        if force or _is_override_active(code):
+            if force and code:
+                with _state_lock:
+                    _state["override_code"] = code
+                    _state["override_until"] = time.time() + 1800
+            _clear_auto_pause_state(unpause_bridge=False)
+            _set_paused(False)
+            return {"paused": False, "code": "ok", "reason": ""}
+
+        with _state_lock:
+            _state["auto_paused"] = True
+            _state["auto_pause_code"] = code
+            _state["auto_pause_reason"] = reason
+        _set_paused(True)
+        return {"paused": True, "code": code, "reason": reason}
+
+    _clear_auto_pause_state(unpause_bridge=False)
+    _set_paused(False)
+    return {"paused": False, "code": "ok", "reason": ""}
+
+
+def _reconcile_after_config_change(workspace: str) -> None:
+    """用户关闭过温/低电/定时保护或调高阈值后，立刻解除不再成立的自动暂停。"""
+    with _state_lock:
+        auto_paused = bool(_state["auto_paused"])
+        was_overheat = _state["auto_pause_code"] == "overheat"
+    if not auto_paused:
+        return
+    cfg = load_config(workspace)
+    telemetry = read_telemetry()
+    guard = evaluate_guard(cfg, telemetry, now_hhmm=time.strftime("%H:%M"), was_overheat=was_overheat)
+    if not guard["should_pause"]:
+        _clear_auto_pause_state(unpause_bridge=True)
+
+
 def on_scheduler_started(workspace: str) -> None:
     cfg = load_config(workspace)
     if cfg.get("auto_mute_game", True):
@@ -291,6 +393,7 @@ def on_scheduler_started(workspace: str) -> None:
 
 
 def on_scheduler_stopped(workspace: str, error: str = "") -> None:
+    _clear_auto_pause_state(unpause_bridge=True)
     set_media_muted(False)
     _update_progress_notification("OASX 后台托管中", "空闲", False)
 
@@ -435,7 +538,10 @@ def _guard_tick(workspace: str) -> None:
     guard = evaluate_guard(cfg, telemetry, now_hhmm=now_hhmm, was_overheat=was_overheat)
     scheduler_running = _scheduler_is_running()
 
-    if guard["should_pause"] and scheduler_running:
+    if not scheduler_running:
+        if auto_paused:
+            _clear_auto_pause_state(unpause_bridge=True)
+    elif guard["should_pause"] and not _is_override_active(str(guard.get("code") or "")):
         _set_paused(True)
         with _state_lock:
             _state["auto_paused"] = True
@@ -457,12 +563,7 @@ def _guard_tick(workspace: str) -> None:
                 _state["last_alert_code"] = guard["code"]
     else:
         if not guard["should_pause"] and auto_paused:
-            _set_paused(False)
-            with _state_lock:
-                _state["auto_paused"] = False
-                _state["auto_pause_code"] = ""
-                _state["auto_pause_reason"] = ""
-                _state["last_alert_code"] = None
+            _clear_auto_pause_state(unpause_bridge=True)
 
     if cfg.get("shizuku_alert", True) and scheduler_running:
         if not _shizuku_ready():

@@ -117,8 +117,22 @@ def run_task(name: str, config_name: str = 'oas1', wait: bool = False,
         def worker() -> None:
             ok, cancelled, error_text = False, False, ''
             file_handler = None
+            saved_phase = {'value': 'starting'}
+
+            def _on_pause(is_paused: bool) -> None:
+                with _LOCK:
+                    if TASK_STATE['run_id'] != run_id:
+                        return
+                    if is_paused:
+                        cur = TASK_STATE.get('phase', 'starting')
+                        if cur != 'paused':
+                            saved_phase['value'] = cur
+                        TASK_STATE['phase'] = 'paused'
+                    elif TASK_STATE.get('phase') == 'paused':
+                        TASK_STATE['phase'] = saved_phase['value']
+
             try:
-                with task_control(cancel):
+                with task_control(cancel, on_pause=_on_pause):
                     checkpoint()
                     from module.logger import logger as business_logger
 
