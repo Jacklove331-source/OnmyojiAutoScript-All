@@ -105,6 +105,93 @@ def clear_guard_pause_hint() -> None:
         SCHEDULER['guard_reason'] = ''
 
 
+def _duration_to_seconds(value) -> int:
+    if value is None:
+        return 0
+    if isinstance(value, (int, float)):
+        return max(0, int(value))
+    if hasattr(value, 'hour') and hasattr(value, 'minute') and hasattr(value, 'second'):
+        try:
+            return max(0, int(value.hour) * 3600 + int(value.minute) * 60 + int(value.second))
+        except (TypeError, ValueError):
+            return 0
+    if isinstance(value, str):
+        parts = value.strip().split(':')
+        try:
+            if len(parts) == 3:
+                return max(0, int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2]))
+            if len(parts) == 2:
+                return max(0, int(parts[0]) * 60 + int(parts[1]))
+            return max(0, int(float(value)))
+        except ValueError:
+            return 0
+    return 0
+
+
+def _idle_close_policy(config_name: str) -> tuple[bool, int]:
+    """读取 Script.optimization 的队列为空关游戏配置，返回 (should_close_enabled, min_wait_seconds)。"""
+    try:
+        from .task_runner import _make_config, prepare_workspace
+        prepare_workspace()
+        cfg = _make_config(config_name)
+        opt = getattr(getattr(cfg.model, 'script', None), 'optimization', None)
+        if opt is None:
+            return False, 0
+        raw_mode = getattr(opt, 'when_task_queue_empty', 'goto_main')
+        mode = str(getattr(raw_mode, 'value', raw_mode) or '').strip().lower()
+        if mode != 'close_game':
+            return False, 0
+        wait_sec = _duration_to_seconds(getattr(opt, 'close_game_wait_duration', None))
+        # 当用户选择了「关闭游戏」但等待时长保持默认 00:00:00 时，采用 60 秒安全下限，
+        # 避免离下个任务只剩十几秒时刚关掉游戏又要重新冷启动。
+        return True, max(60, wait_sec)
+    except Exception:  # noqa: BLE001
+        return False, 0
+
+
+def _close_game_for_idle(config_name: str, delay_seconds: float, idle_state: dict) -> bool:
+    """队列为空等待期间：若配置为 close_game 且剩余等待时长达标，关闭游戏并释放虚拟屏省电降温。"""
+    if idle_state.get('closed'):
+        return False
+    enabled, min_wait = _idle_close_policy(config_name)
+    if not enabled or delay_seconds < min_wait:
+        return False
+    try:
+        from . import bridge
+        pkg = bridge.target_package() if callable(getattr(bridge, 'target_package', None)) else 'com.netease.onmyoji'
+        running_game = bool(bridge.game_running(pkg)) if callable(getattr(bridge, 'game_running', None)) else False
+        running_vd = bool(bridge.vdstream_running()) if callable(getattr(bridge, 'vdstream_running', None)) else False
+        if not running_game and not running_vd:
+            idle_state['closed'] = True
+            return False
+        if running_game:
+            try:
+                from .shizuku_exec import exec_shell
+                exec_shell(f'am force-stop {pkg}')
+            except Exception as exc:  # noqa: BLE001
+                _log(f'idle close game failed: {exc}')
+        if running_vd and callable(getattr(bridge, 'vdstream_stop', None)):
+            try:
+                bridge.vdstream_stop()
+            except Exception as exc:  # noqa: BLE001
+                _log(f'idle stop virtual display failed: {exc}')
+        try:
+            from . import device_guard
+            device_guard.set_media_muted(False)
+            mins = max(1, int(round(delay_seconds / 60.0)))
+            device_guard._update_progress_notification(
+                'OASX 后台等待中', f'距下个任务约 {mins} 分钟（已关闭游戏省电）', False
+            )
+        except Exception:  # noqa: BLE001
+            pass
+        idle_state['closed'] = True
+        _log(f'queue empty (next in {int(delay_seconds)}s); closed {pkg} and virtual display to save power')
+        return True
+    except Exception as error:  # noqa: BLE001
+        _log(f'idle close skipped: {error}')
+        return False
+
+
 def _log(message: str) -> None:
     line = f"{time.strftime('%H:%M:%S')} {message}"
     with _LOCK:
@@ -473,6 +560,7 @@ def start(tasks=None, interval: int = 1800, config_name: str = 'oas1', force: bo
             return False
 
         def worker() -> None:
+            idle_state = {'closed': False}
             try:
                 try:
                     from . import device_guard
@@ -490,6 +578,14 @@ def start(tasks=None, interval: int = 1800, config_name: str = 'oas1', force: bo
                             continue
                         if not reserve_round():
                             break
+                        if idle_state.get('closed'):
+                            idle_state['closed'] = False
+                            try:
+                                from . import device_guard
+                                from .task_runner import prepare_workspace
+                                device_guard.on_scheduler_started(prepare_workspace())
+                            except Exception:  # noqa: BLE001
+                                pass
                         for index, name in enumerate(selected, 1):
                             if stop_event.is_set():
                                 break
@@ -505,6 +601,7 @@ def start(tasks=None, interval: int = 1800, config_name: str = 'oas1', force: bo
                             device_guard.on_daily_tasks_completed(ws)
                         except Exception as asset_err:  # noqa: BLE001
                             _log(f'daily tasks hook skipped: {asset_err}')
+                        _close_game_for_idle(config_name, float(interval), idle_state)
                         with _LOCK:
                             SCHEDULER['next_at'] = int(time.time()) + interval
                         stop_event.wait(interval)
@@ -527,6 +624,7 @@ def start(tasks=None, interval: int = 1800, config_name: str = 'oas1', force: bo
                                     device_guard.on_daily_tasks_completed(ws)
                                 except Exception as asset_err:  # noqa: BLE001
                                     _log(f'daily tasks hook skipped: {asset_err}')
+                            _close_game_for_idle(config_name, delay, idle_state)
                             with _LOCK:
                                 SCHEDULER['next_at'] = int(time.time() + delay)
                             stop_event.wait(min(delay, 5))
@@ -537,6 +635,14 @@ def start(tasks=None, interval: int = 1800, config_name: str = 'oas1', force: bo
                             continue
                         if not reserve_round():
                             break
+                        if idle_state.get('closed'):
+                            idle_state['closed'] = False
+                            try:
+                                from . import device_guard
+                                from .task_runner import prepare_workspace
+                                device_guard.on_scheduler_started(prepare_workspace())
+                            except Exception:  # noqa: BLE001
+                                pass
                         run_one(next_task.command)
             except Exception as error:
                 with _LOCK:

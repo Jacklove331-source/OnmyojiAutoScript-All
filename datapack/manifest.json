@@ -1,12 +1,12 @@
 {
-  "version": "2026.11.27.101101",
+  "version": "2026.11.27.103049",
   "source": "mobile",
-  "note": "热更修复: 解决任务结束自动刷新资产时提前置running=False导致调度器抢跑报错并直接结束托管的竞态问题",
-  "updated_at": "2026-11-27T10:11:01",
+  "note": "热更增强: 接入「当任务队列清空后=关闭游戏」与等待时长配置，空闲等待期间自动关闭游戏与虚拟屏并恢复音量，到点自动拉起",
+  "updated_at": "2026-11-27T10:30:49",
   "file": "datapack/oas-patch.zip",
-  "size_bytes": 26529814,
+  "size_bytes": 26531020,
   "file_count": 3576,
-  "sha256": "790bd09cfe1e3e2a594db3135f694289182ace5b97938c2d8a23b2426d98e8c7",
+  "sha256": "90f9dd75e6458db7a60c8bf81464f08095a8b1fd40da4f803549a419b526c461",
   "apk": {
     "version_name": "0.3.5",
     "build_number": 83,

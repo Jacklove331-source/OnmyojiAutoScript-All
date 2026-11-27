@@ -484,6 +484,59 @@ class SchedulerTests(unittest.TestCase):
         self.assertTrue(st['running'], '跑完一轮后调度器应保持 running=True 等待下一轮')
         self.assertEqual(len(refresh_calls), 2)
 
+    def test_idle_wait_closes_game_and_virtual_display_when_configured(self):
+        import oas_mobile
+
+        actions = []
+        oas_mobile.bridge.target_package = lambda: 'com.netease.onmyoji'
+        oas_mobile.bridge.game_running = lambda pkg=None: True
+        oas_mobile.bridge.vdstream_running = lambda: True
+        oas_mobile.bridge.vdstream_stop = lambda: actions.append('vd_stop') or True
+
+        fake_exec = types.ModuleType('oas_mobile.shizuku_exec')
+        fake_exec.exec_shell = lambda cmd: actions.append(cmd) or ''
+        orig_exec = sys.modules.get('oas_mobile.shizuku_exec')
+        sys.modules['oas_mobile.shizuku_exec'] = fake_exec
+        self.addCleanup(
+            lambda: sys.modules.__setitem__('oas_mobile.shizuku_exec', orig_exec)
+            if orig_exec is not None else sys.modules.pop('oas_mobile.shizuku_exec', None)
+        )
+
+        # 1) 默认 goto_main：不关闭游戏
+        self.runner._make_config = lambda name: types.SimpleNamespace(
+            model=types.SimpleNamespace(
+                script=types.SimpleNamespace(
+                    optimization=types.SimpleNamespace(
+                        when_task_queue_empty='goto_main',
+                        close_game_wait_duration=types.SimpleNamespace(hour=0, minute=0, second=0),
+                    )
+                )
+            )
+        )
+        idle_state = {'closed': False}
+        self.assertFalse(self.scheduler._close_game_for_idle('oas1', 600.0, idle_state))
+        self.assertEqual(actions, [])
+
+        # 2) close_game 且等待阈值 5 分钟，但剩余 2 分钟：不关
+        self.runner._make_config = lambda name: types.SimpleNamespace(
+            model=types.SimpleNamespace(
+                script=types.SimpleNamespace(
+                    optimization=types.SimpleNamespace(
+                        when_task_queue_empty='close_game',
+                        close_game_wait_duration=types.SimpleNamespace(hour=0, minute=5, second=0),
+                    )
+                )
+            )
+        )
+        self.assertFalse(self.scheduler._close_game_for_idle('oas1', 120.0, idle_state))
+        self.assertEqual(actions, [])
+
+        # 3) close_game 且剩余 10 分钟（>=5 分钟）：自动强停游戏并关虚拟屏，且同一等待只执行一次
+        self.assertTrue(self.scheduler._close_game_for_idle('oas1', 600.0, idle_state))
+        self.assertEqual(actions, ['am force-stop com.netease.onmyoji', 'vd_stop'])
+        self.assertFalse(self.scheduler._close_game_for_idle('oas1', 580.0, idle_state))
+        self.assertEqual(len(actions), 2)
+
     def test_scheduler_start_clears_stale_overheat_and_respects_manual_resume(self):
         from tempfile import TemporaryDirectory
         import oas_mobile
