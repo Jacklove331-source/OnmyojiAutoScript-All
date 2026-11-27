@@ -10,6 +10,7 @@ import '../task_names.dart';
 import '../widgets.dart';
 import 'assets_card.dart';
 import 'ai_recovery.dart';
+import 'diag_card.dart';
 import 'ota_card.dart';
 import 'task_args.dart';
 
@@ -500,6 +501,10 @@ class _HomePageState extends State<HomePage> {
               api: _api,
               compact: true,
               autoCheckOnLaunch: true,
+            ),
+            OasDiagCard(
+              api: _api,
+              compact: true,
             ),
             const SizedBox(height: 14),
             _queueSectionHeader(p),

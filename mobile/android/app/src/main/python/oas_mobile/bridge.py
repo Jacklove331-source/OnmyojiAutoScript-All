@@ -56,6 +56,40 @@ except Exception:  # noqa: BLE001
     _FOREGROUND_SERVICE = None
 
 
+def _shell_output(result) -> str:
+    """兼容 Kotlin data class ShellResult 在 Chaquopy 中以 getOutput() 暴露的情况。"""
+    if result is None:
+        return ""
+    try:
+        getter = getattr(result, "getOutput", None)
+        if callable(getter):
+            return str(getter() or "")
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        return str(getattr(result, "output", "") or "")
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+def _shell_code(result, default: int = -1) -> int:
+    if result is None:
+        return default
+    try:
+        getter = getattr(result, "getCode", None)
+        if callable(getter):
+            return int(getter())
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        val = getattr(result, "code", None)
+        if val is not None:
+            return int(val)
+    except Exception:  # noqa: BLE001
+        pass
+    return default
+
+
 def foreground_via_shell() -> str:
     """用 Shizuku 跑 dumpsys 取前台包名（不弹任何窗）。"""
     if _SHIZUKU is None:
@@ -71,7 +105,7 @@ def foreground_via_shell() -> str:
                 "dumpsys activity activities | grep mResumedActivity"):
         try:
             res = _SHIZUKU.exec(cmd, 8000)
-            texts.append(str(getattr(res, "output", "") or ""))
+            texts.append(_shell_output(res))
         except Exception:  # noqa: BLE001
             continue
     for text in texts:
@@ -381,13 +415,19 @@ def display_ensure_app(package: str, width: int = 1280, height: int = 720) -> in
 
 
 def game_running(package: str | None = None) -> bool:
-    """目标游戏进程是否在跑（`pidof`）。"""
+    """目标游戏进程是否在跑（`pidof`，兼容 Kotlin getOutput() 及 ps 兜底）。"""
     if _SHIZUKU is None:
         return False
     package = package or target_package()
     try:
         result = _SHIZUKU.exec(f"pidof {package}", 5000)
-        return bool((result.output or "").strip())
+        if _shell_output(result).strip():
+            return True
+        ps_res = _SHIZUKU.exec(f"ps -A -o NAME | grep -F {package}", 5000)
+        for line in _shell_output(ps_res).splitlines():
+            if line.strip() == package:
+                return True
+        return False
     except Exception:  # noqa: BLE001
         return False
 
@@ -436,7 +476,7 @@ def send_home(times: int = 2) -> bool:
     ok = True
     for index in range(max(1, int(times))):
         try:
-            ok = bool(_SHIZUKU.exec("input keyevent 3", 5000).code == 0) and ok
+            ok = bool(_shell_code(_SHIZUKU.exec("input keyevent 3", 5000)) == 0) and ok
         except Exception:  # noqa: BLE001
             return False
         if index + 1 < max(1, int(times)):

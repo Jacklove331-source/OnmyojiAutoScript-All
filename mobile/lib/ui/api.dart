@@ -209,6 +209,36 @@ class OasApi {
   Future<Map<String, dynamic>> guardConfigSave(Map<String, dynamic> patch) =>
       _postJson('/guard/config', body: patch);
 
+  /// 个人专享诊断回传状态（公开版 configured=false，绝不回显 token）。
+  Future<Map<String, dynamic>> diagStatus() async {
+    try {
+      return await _getJson('/diag/status');
+    } catch (error) {
+      return <String, dynamic>{'ok': false, 'configured': false, 'error': '$error'};
+    }
+  }
+
+  /// 更新诊断上传开关（enabled / auto_upload）。
+  Future<Map<String, dynamic>> diagConfigSave(Map<String, dynamic> patch) =>
+      _postJson('/diag/config', body: patch);
+
+  /// 一键打包并上传当前现场（日志 + 脱敏配置 + 后台虚拟屏截图）。
+  Future<Map<String, dynamic>> diagUpload({
+    String note = '',
+    String? config,
+    bool includeScreenshot = true,
+  }) =>
+      _postJson(
+        '/diag/upload',
+        body: <String, dynamic>{
+          'trigger': 'manual',
+          'note': note,
+          'config': config ?? activeConfig,
+          'include_screenshot': includeScreenshot,
+        },
+        receiveTimeout: const Duration(seconds: 45),
+      );
+
   /// OAS 自带中文词表：`{英文键: 中文}`。没有译文的键不会出现在返回里，前端按原键兜底。
   Future<Map<String, String>> i18n(List<String> keys) async {
     if (keys.isEmpty) return <String, String>{};

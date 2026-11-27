@@ -1002,11 +1002,13 @@ def _apply_update_locked(workspace: str, zip_bytes, manifest, cfg: dict) -> dict
             pass
 
     activate_overlay(workspace, reload_modules=True)
+    needs_restart = (root / OVERLAY_DIRNAME / "oas_mobile").exists()
 
     return {
         "ok": True,
         "installed_version": version,
         "file_count": file_count,
+        "needs_restart": needs_restart,
         "status": get_status(workspace),
     }
 

@@ -1345,6 +1345,10 @@ class _Handler(BaseHTTPRequestHandler):
             from . import ota_updater
             self._send_json(200, ota_updater.get_apk_download_status(_workspace()))
             return
+        if route.path == "/diag/status":
+            from . import diag_uploader
+            self._send_json(200, diag_uploader.get_status(_workspace()))
+            return
         if route.path == "/guard/status":
             from . import device_guard
             self._send_json(200, device_guard.get_status(_workspace()))
@@ -1457,6 +1461,36 @@ class _Handler(BaseHTTPRequestHandler):
             if route.path == "/ota/download_apk":
                 from . import ota_updater
                 self._send_json(200, ota_updater.download_apk_async(_workspace()))
+                return
+            if route.path == "/diag/config":
+                from . import diag_uploader
+                try:
+                    length = int(self.headers.get("Content-Length") or 0)
+                    raw = self.rfile.read(length) if length else b"{}"
+                    patch = json.loads(raw.decode("utf-8", "replace")) if raw else {}
+                    self._send_json(200, diag_uploader.save_config(_workspace(), patch))
+                except Exception as error:  # noqa: BLE001
+                    self._send_json(400, {"ok": False, "error": str(error)})
+                return
+            if route.path == "/diag/upload":
+                from . import diag_uploader
+                try:
+                    length = int(self.headers.get("Content-Length") or 0)
+                    raw = self.rfile.read(length) if length else b"{}"
+                    body = json.loads(raw.decode("utf-8", "replace")) if raw else {}
+                    if not isinstance(body, dict):
+                        body = {}
+                    res = diag_uploader.upload_report(
+                        _workspace(),
+                        trigger=str(body.get("trigger") or "manual"),
+                        task=str(body.get("task") or ""),
+                        config_name=str(body.get("config") or query.get("config") or ""),
+                        note=str(body.get("note") or ""),
+                        include_screenshot=bool(body.get("include_screenshot", True)),
+                    )
+                    self._send_json(200, res)
+                except Exception as error:  # noqa: BLE001
+                    self._send_json(400, {"ok": False, "error": str(error)})
                 return
             if route.path == "/guard/config":
                 from . import device_guard

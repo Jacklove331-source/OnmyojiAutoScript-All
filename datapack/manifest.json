@@ -1,12 +1,12 @@
 {
-  "version": "2026.11.27.103049",
+  "version": "2026.11.27.185655",
   "source": "mobile",
-  "note": "热更增强: 接入「当任务队列清空后=关闭游戏」与等待时长配置，空闲等待期间自动关闭游戏与虚拟屏并恢复音量，到点自动拉起",
-  "updated_at": "2026-11-27T10:30:49",
+  "note": "热更修复: 修复资产巡检误点庭院悬赏封印且无法关闭、登录守卫自动关闭悬赏弹窗、修复 game_running 误报导致空闲不关游戏",
+  "updated_at": "2026-11-27T18:56:55",
   "file": "datapack/oas-patch.zip",
-  "size_bytes": 26531020,
-  "file_count": 3576,
-  "sha256": "90f9dd75e6458db7a60c8bf81464f08095a8b1fd40da4f803549a419b526c461",
+  "size_bytes": 26542661,
+  "file_count": 3579,
+  "sha256": "ed59480b5daa6058bf39d04af3a1de4355c7f51f5ddbc74ff38164c86c35881e",
   "apk": {
     "version_name": "0.3.5",
     "build_number": 83,

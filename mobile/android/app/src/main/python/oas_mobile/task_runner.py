@@ -236,6 +236,18 @@ def run_task(name: str, config_name: str = 'oas1', wait: bool = False,
                             'error': error_text, 'cancelled': cancelled,
                             'phase': 'stopped' if cancelled else ('completed' if ok else 'failed'),
                         })
+                if not ok and not cancelled:
+                    try:
+                        from . import diag_uploader
+                        diag_uploader.trigger_auto_upload(
+                            prepare_workspace(),
+                            trigger='task_failed',
+                            task=name,
+                            config_name=config_name,
+                            note=error_text or f'{name} failed',
+                        )
+                    except Exception:  # noqa: BLE001
+                        pass
 
         thread = threading.Thread(target=worker, name=f'oas-task-{name}', daemon=True)
         _THREAD = thread

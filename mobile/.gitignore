@@ -25,4 +25,7 @@ abyss33-*.png
 hunt-*.png
 hunt33-*.png
 run-local-event.py
+android/app/src/main/assets/diag_private.json
+**/_diag_private_config.json
+
 

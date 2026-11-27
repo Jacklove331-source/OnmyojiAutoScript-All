@@ -811,8 +811,15 @@ def _read_courtyard_slots(rgb, fsize: tuple[int, int]) -> dict[str, dict[str, An
     return out
 
 
+WANTED_PANEL_CLOSE_1280 = (1215, 108)
+
+
+def _is_wanted_panel_text(joined_txt: str) -> bool:
+    return ("悬赏封印" in joined_txt) or ("一键追踪" in joined_txt and "下次刷新" in joined_txt)
+
+
 def _try_return_to_courtyard(bridge_mod: Any, disp: int, rgb, fsize: tuple[int, int], rows: list[dict], max_taps: int = 4):
-    """只读方式尝试安全退回庭院（遇到退出确认框自动点取消）。"""
+    """只读方式尝试安全退回庭院（遇到退出确认框点取消；遇到悬赏封印弹窗点右上角 X）。"""
     for _ in range(max_taps):
         if _is_courtyard_frame(rgb, rows):
             return rgb, fsize, rows, True
@@ -824,6 +831,8 @@ def _try_return_to_courtyard(bridge_mod: Any, disp: int, rgb, fsize: tuple[int, 
                     cancel_xy = (int(r["x"] + r["w"] / 2), int(r["y"] + r["h"] / 2))
                     break
             _tap_1280(bridge_mod, disp, cancel_xy[0], cancel_xy[1], fsize)
+        elif _is_wanted_panel_text(joined_txt):
+            _tap_1280(bridge_mod, disp, WANTED_PANEL_CLOSE_1280[0], WANTED_PANEL_CLOSE_1280[1], fsize)
         else:
             _tap_1280(bridge_mod, disp, 35, 35, fsize)
         time.sleep(1.0)
@@ -956,8 +965,8 @@ def refresh_assets(
                     "source": "tooltip.stamina",
                     "text": str(exact_ap),
                 }
-        # 点庭院左侧空白关闭体力说明气泡
-        _tap_1280(bridge, disp, 220, 360, fsize)
+        # 点顶栏左侧安全空白关闭体力说明气泡（绝不能点庭院左侧 (220,360)，否则会误点悬赏小纸人弹开悬赏封印！）
+        _tap_1280(bridge, disp, 130, 26, fsize)
         time.sleep(0.6)
 
         # Step 3: 只读进入商店识别皮肤券/神秘符咒/魂玉/勾玉（3x 放大 + 勾玉锚点校验），随后安全退回庭院
@@ -980,7 +989,7 @@ def refresh_assets(
                 break
             time.sleep(1.0)
 
-        # 安全返回庭院（防误触退出游戏框）
+        # 安全返回庭院（防误触退出游戏框；若停在悬赏封印弹窗则点右上角 X 关闭）
         _set_phase("正在返回庭院...")
         for _ in range(4):
             _tap_1280(bridge, disp, 35, 35, fsize)
@@ -996,6 +1005,9 @@ def refresh_assets(
                 _tap_1280(bridge, disp, 835, 416, fb_size)
                 time.sleep(0.6)
                 break
+            if _is_wanted_panel_text(joined_back):
+                _tap_1280(bridge, disp, WANTED_PANEL_CLOSE_1280[0], WANTED_PANEL_CLOSE_1280[1], fb_size)
+                time.sleep(0.8)
 
         snap = merge_snapshot(workspace, config, readings, error="")
         return {"ok": True, "snapshot": snap}

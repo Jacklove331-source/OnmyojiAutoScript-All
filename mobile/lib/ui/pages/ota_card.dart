@@ -478,10 +478,15 @@ class _OasOtaCardState extends State<OasOtaCard> {
           _remoteManifest['version']?.toString() ??
           '';
 
+      final bool needsRestart = map['needs_restart'] == true;
       _toast(
-        version.isNotEmpty
-            ? '热更新已生效：版本 $version，无需重装 APK'
-            : '热更新已生效，无需重装 APK',
+        needsRestart
+            ? (version.isNotEmpty
+                ? '热更新 $version 已安装（含内核改动，请划掉后台重启 App 生效）'
+                : '热更新已安装（含内核改动，请划掉后台重启 App 生效）')
+            : (version.isNotEmpty
+                ? '热更新已生效：版本 $version，无需重装 APK'
+                : '热更新已生效，无需重装 APK'),
       );
 
       await _refresh();

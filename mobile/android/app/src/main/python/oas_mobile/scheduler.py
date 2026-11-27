@@ -75,6 +75,19 @@ def _wait_for_shizuku(stop_event: threading.Event, task_name: str = '') -> bool:
         SCHEDULER['error'] = reason
     _log(f'waiting for Shizuku before {task_name or "task"}')
     try:
+        from . import diag_uploader
+        from .task_runner import prepare_workspace
+        diag_uploader.trigger_auto_upload(
+            prepare_workspace(),
+            trigger='shizuku_lost',
+            task=task_name,
+            config_name=str(SCHEDULER.get('config') or 'oas1'),
+            note=reason,
+            include_screenshot=False,
+        )
+    except Exception:  # noqa: BLE001
+        pass
+    try:
         from . import device_guard
         device_guard._update_progress_notification(
             'OASX 等待 Shizuku', '请打开 Shizuku，就绪后将自动拉起游戏', True
@@ -154,7 +167,15 @@ def _close_game_for_idle(config_name: str, delay_seconds: float, idle_state: dic
     if idle_state.get('closed'):
         return False
     enabled, min_wait = _idle_close_policy(config_name)
-    if not enabled or delay_seconds < min_wait:
+    if not enabled:
+        if idle_state.get('logged_reason') != 'disabled':
+            idle_state['logged_reason'] = 'disabled'
+            _log(f'idle wait ({int(delay_seconds)}s): auto close_game disabled (mode!=close_game)')
+        return False
+    if delay_seconds < min_wait:
+        if idle_state.get('logged_reason') != 'short_wait':
+            idle_state['logged_reason'] = 'short_wait'
+            _log(f'idle wait ({int(delay_seconds)}s < min_wait {min_wait}s): keeping game running')
         return False
     try:
         from . import bridge
@@ -164,12 +185,13 @@ def _close_game_for_idle(config_name: str, delay_seconds: float, idle_state: dic
         if not running_game and not running_vd:
             idle_state['closed'] = True
             return False
-        if running_game:
-            try:
-                from .shizuku_exec import exec_shell
-                exec_shell(f'am force-stop {pkg}')
-            except Exception as exc:  # noqa: BLE001
-                _log(f'idle close game failed: {exc}')
+        # 只要游戏进程在跑或虚拟屏仍挂载，就先强制停止游戏再释放虚拟屏，
+        # 避免个别机型 pidof 短暂返回空时只停了虚拟屏却把游戏留在后台。
+        try:
+            from .shizuku_exec import exec_shell
+            exec_shell(f'am force-stop {pkg}')
+        except Exception as exc:  # noqa: BLE001
+            _log(f'idle close game failed: {exc}')
         if running_vd and callable(getattr(bridge, 'vdstream_stop', None)):
             try:
                 bridge.vdstream_stop()
@@ -647,7 +669,20 @@ def start(tasks=None, interval: int = 1800, config_name: str = 'oas1', force: bo
             except Exception as error:
                 with _LOCK:
                     SCHEDULER['error'] = f'{type(error).__name__}: {error}'
+                    err_task = str(SCHEDULER.get('current') or '')
                 _log(SCHEDULER['error'])
+                try:
+                    from . import diag_uploader
+                    from .task_runner import prepare_workspace
+                    diag_uploader.trigger_auto_upload(
+                        prepare_workspace(),
+                        trigger='scheduler_error',
+                        task=err_task,
+                        config_name=config_name,
+                        note=f'{type(error).__name__}: {error}',
+                    )
+                except Exception:  # noqa: BLE001
+                    pass
             finally:
                 err_msg = SCHEDULER.get('error', '')
                 with _LOCK:

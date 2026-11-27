@@ -603,6 +603,14 @@ def ensure_logged_in(display: int, timeout: float = LOGIN_TIMEOUT, *, character:
             if home.get("ok") and home.get("score", 0) >= 0.80:
                 logger.info(f"[mobile] home detected (score={home['score']})")
                 return character_selected
+            if "悬赏封印" in texts and any(tok in texts for tok in ("一键追踪", "下次刷新", "邀请好友")):
+                # 实测 2026-11-27：若上一流程误停在庭院悬赏封印弹窗，右上角 X 关闭即可回庭院。
+                checkpoint()
+                x, y = _display_point((1215, 108), frame)
+                logger.info(f"[mobile] dismiss wanted quests panel at {x},{y}")
+                bridge.display_tap(display, x, y)
+                time.sleep(1.5)
+                continue
             dismiss = _modal_dismiss_point(results)
             if dismiss is not None:
                 # 认出了挡画面的卷轴/公告框：点它的取消类按钮，别点确认。

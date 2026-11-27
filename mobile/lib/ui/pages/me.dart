@@ -7,6 +7,7 @@ import '../avatar_store.dart';
 import '../safety.dart';
 import '../system_ui.dart';
 import '../widgets.dart';
+import 'diag_card.dart';
 import 'guard_card.dart';
 
 /// ⑤ 我的：狐面头像 + 权限与自愈状态集中管理。
@@ -120,6 +121,7 @@ class _MePageState extends State<MePage> {
             _courtyardSkinCard(context, p),
             const SizedBox(height: 12),
             const OasGuardCard(),
+            const OasDiagCard(),
             const SizedBox(height: 12),
             _permissionCard(context, p),
             const SizedBox(height: 12),
