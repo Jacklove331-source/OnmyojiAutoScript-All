@@ -421,6 +421,18 @@ def start(tasks=None, interval: int = 1800, config_name: str = 'oas1', force: bo
                 except Exception:  # noqa: BLE001
                     pass
                 result = task_runner.run_task(name, config_name, login=name != 'Restart')
+                # 若上一轮任务线程正在极短收尾/资产刷新窗口内，等待收尾后重试而不是直接打死调度器
+                retries = 0
+                while not result.get('ok') and not stop_event.is_set() and retries < 20:
+                    err_txt = str(result.get('error') or '')
+                    if '正在自动更新资产' in err_txt or 'another task is running' in err_txt:
+                        retries += 1
+                        stop_event.wait(0.25)
+                        result = task_runner.run_task(name, config_name, login=name != 'Restart')
+                        continue
+                    break
+                if stop_event.is_set():
+                    return False
                 if not result.get('ok'):
                     raise RuntimeError(result.get('error', 'task not started'))
                 run_id = result['run_id']
@@ -430,7 +442,7 @@ def start(tasks=None, interval: int = 1800, config_name: str = 'oas1', force: bo
                     current = task_runner.status()
                     if current['run_id'] != run_id:
                         raise RuntimeError('active task instance changed unexpectedly')
-                    if not current['running']:
+                    if not current['running'] and not current.get('assets_refreshing'):
                         break
                     if stop_event.is_set():
                         # Cancellation can wait for an in-flight screenshot or OCR call.

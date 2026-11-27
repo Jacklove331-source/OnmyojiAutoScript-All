@@ -1,12 +1,12 @@
 {
-  "version": "2026.11.26.213853",
+  "version": "2026.11.27.101101",
   "source": "mobile",
-  "note": "热更修复: 锁阵容遇未锁战斗自动点准备按钮、Secret战斗等待兜底点准备、登录守卫识别战斗准备页不再8分钟超时",
-  "updated_at": "2026-11-26T21:38:53",
+  "note": "热更修复: 解决任务结束自动刷新资产时提前置running=False导致调度器抢跑报错并直接结束托管的竞态问题",
+  "updated_at": "2026-11-27T10:11:01",
   "file": "datapack/oas-patch.zip",
-  "size_bytes": 26529472,
+  "size_bytes": 26529814,
   "file_count": 3576,
-  "sha256": "0317108b1175cfa0a0fb0a1163710d7c6cf70accdb2fb84acee21b8ae3f751d4",
+  "sha256": "790bd09cfe1e3e2a594db3135f694289182ace5b97938c2d8a23b2426d98e8c7",
   "apk": {
     "version_name": "0.3.5",
     "build_number": 83,

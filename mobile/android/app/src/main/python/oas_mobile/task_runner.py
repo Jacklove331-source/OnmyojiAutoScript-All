@@ -100,6 +100,16 @@ def run_task(name: str, config_name: str = 'oas1', wait: bool = False,
         return {'ok': False, 'error': 'invalid config name'}
 
     with _LOCK:
+        prev_thread = _THREAD
+        if not TASK_STATE['running'] and not TASK_STATE.get('assets_refreshing') and prev_thread is not None and prev_thread.is_alive():
+            # 上一任务已标记结束但线程正在执行 finally 最后几行，短等其自然退出避免微秒级竞态误报
+            pass
+        else:
+            prev_thread = None
+    if prev_thread is not None and prev_thread is not threading.current_thread():
+        prev_thread.join(timeout=2.0)
+
+    with _LOCK:
         if TASK_STATE['running'] or (_THREAD is not None and _THREAD.is_alive()):
             return {'ok': False, 'error': 'another task is running', 'status': status()}
         if TASK_STATE.get('assets_refreshing'):
@@ -193,23 +203,9 @@ def run_task(name: str, config_name: str = 'oas1', wait: bool = False,
                 for line in traceback.format_exc().strip().splitlines()[-12:]:
                     _log(line)
             finally:
-                if file_handler is not None:
-                    business_logger.removeHandler(file_handler)
-                    _FILE_LOGGER.removeHandler(file_handler)
-                    try:
-                        file_handler.close()
-                    except OSError as error:
-                        _log(f'could not close task log: {error}')
-                with _LOCK:
-                    if TASK_STATE['run_id'] == run_id:
-                        TASK_STATE.update({
-                            'running': False, 'finished_at': time.time(), 'ok': ok,
-                            'error': error_text, 'cancelled': cancelled,
-                            'phase': 'stopped' if cancelled else ('completed' if ok else 'failed'),
-                        })
-                # 任务结束 → 自动刷新一次资产（重启任务除外）。放在这里是因为
-                # scheduler 用 run_task(wait=True) 等本线程结束：刷新跑完才排下一个任务，
-                # 不会出现"刷新和下一个任务同时抢虚拟屏"。
+                # 先完成自动资产刷新，再置 running=False！
+                # 否则 scheduler 轮询到 running=False 立刻拉起下一个任务，会撞上
+                # _THREAD.is_alive() / assets_refreshing=True 抛出 RuntimeError 把整个托管杀掉。
                 if not cancelled:
                     try:
                         from . import asset_monitor as _assets
@@ -226,6 +222,20 @@ def run_task(name: str, config_name: str = 'oas1', wait: bool = False,
                     finally:
                         with _LOCK:
                             TASK_STATE['assets_refreshing'] = False
+                if file_handler is not None:
+                    business_logger.removeHandler(file_handler)
+                    _FILE_LOGGER.removeHandler(file_handler)
+                    try:
+                        file_handler.close()
+                    except OSError as error:
+                        _log(f'could not close task log: {error}')
+                with _LOCK:
+                    if TASK_STATE['run_id'] == run_id:
+                        TASK_STATE.update({
+                            'running': False, 'finished_at': time.time(), 'ok': ok,
+                            'error': error_text, 'cancelled': cancelled,
+                            'phase': 'stopped' if cancelled else ('completed' if ok else 'failed'),
+                        })
 
         thread = threading.Thread(target=worker, name=f'oas-task-{name}', daemon=True)
         _THREAD = thread

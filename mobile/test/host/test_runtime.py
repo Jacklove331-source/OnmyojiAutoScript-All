@@ -452,6 +452,38 @@ class SchedulerTests(unittest.TestCase):
             )
         )
 
+    def test_asset_refresh_at_task_end_does_not_kill_scheduler_before_next_task(self):
+        import oas_mobile
+
+        refresh_calls = []
+
+        def slow_refresh(ws, cfg, task_name):
+            refresh_calls.append(task_name)
+            time.sleep(0.15)
+            return {'ok': True, 'reason': 'updated'}
+
+        fake_assets = types.ModuleType('oas_mobile.asset_monitor')
+        fake_assets.refresh_after_task = slow_refresh
+        orig_assets = sys.modules.get('oas_mobile.asset_monitor')
+        sys.modules['oas_mobile.asset_monitor'] = fake_assets
+        oas_mobile.asset_monitor = fake_assets
+        self.addCleanup(
+            lambda: sys.modules.__setitem__('oas_mobile.asset_monitor', orig_assets)
+            if orig_assets is not None else sys.modules.pop('oas_mobile.asset_monitor', None)
+        )
+
+        self.fixture.release.set()
+        res = self.scheduler.start('Probe,Probe', interval=60)
+        self.assertTrue(res['ok'])
+        deadline = time.monotonic() + 3.0
+        while self.scheduler.status()['completed'] < 2 and time.monotonic() < deadline:
+            time.sleep(0.02)
+        st = self.scheduler.status()
+        self.assertEqual(st['completed'], 2, f'资产刷新竞态导致调度器提前死亡: {st}')
+        self.assertEqual(st['error'], '')
+        self.assertTrue(st['running'], '跑完一轮后调度器应保持 running=True 等待下一轮')
+        self.assertEqual(len(refresh_calls), 2)
+
     def test_scheduler_start_clears_stale_overheat_and_respects_manual_resume(self):
         from tempfile import TemporaryDirectory
         import oas_mobile
